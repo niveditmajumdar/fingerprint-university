@@ -184,38 +184,48 @@ function signalsAreFresh(dev) {
   return ageMinutes < CONFIG.SIGNAL_TTL_MINUTES;
 }
 
-async function getVideoViews(visitorId, email) {
-  // Return watched video IDs for this device OR this email account.
-  // Using UNION to combine both lookups so either match counts.
+async function getVideoViews(visitorId, userId) {
+  // All visitor_ids this user has ever logged in with (via identity_links),
+  // plus the current visitorId — then count distinct videos watched across all of them.
   const { rows } = await db.query(`
-    SELECT DISTINCT video_id FROM video_views
-    WHERE visitor_id = $1
-       OR LOWER(email) = LOWER($2)
-  `, [visitorId, email || '']);
+    SELECT DISTINCT vv.video_id
+    FROM video_views vv
+    WHERE vv.visitor_id IN (
+      SELECT il.visitor_id FROM identity_links il
+      WHERE il.user_id = $2
+      UNION SELECT $1
+    )
+  `, [visitorId, userId]);
   return rows.map(r => r.video_id);
 }
 
-async function getCert(visitorId, email) {
-  // Return certification record for this device OR this email account.
+async function getCert(visitorId, userId) {
+  // Return certification for any visitor_id this user has ever used.
   const { rows } = await db.query(`
     SELECT * FROM certifications
-    WHERE visitor_id = $1
-       OR LOWER(email) = LOWER($2)
+    WHERE visitor_id IN (
+      SELECT il.visitor_id FROM identity_links il
+      WHERE il.user_id = $2
+      UNION SELECT $1
+    )
     ORDER BY submitted_at DESC NULLS LAST
     LIMIT 1
-  `, [visitorId, email || '']);
+  `, [visitorId, userId]);
   return rows[0] || null;
 }
 
-async function getReview(visitorId, email) {
-  // Return review for this device OR this email account.
+async function getReview(visitorId, userId) {
+  // Return review for any visitor_id this user has ever used.
   const { rows } = await db.query(`
     SELECT * FROM reviews
-    WHERE visitor_id = $1
-       OR LOWER(email) = LOWER($2)
+    WHERE visitor_id IN (
+      SELECT il.visitor_id FROM identity_links il
+      WHERE il.user_id = $2
+      UNION SELECT $1
+    )
     ORDER BY submitted_at DESC NULLS LAST
     LIMIT 1
-  `, [visitorId, email || '']);
+  `, [visitorId, userId]);
   return rows[0] || null;
 }
 
@@ -666,33 +676,19 @@ app.post('/api/fp/identify', async (req, res) => {
 
     req.session.visitorId = visitorId;
 
-    // ── Email inheritance on device re-use ────────────────────────────────────
-    // If this visitorId was previously used by a different account, copy those
-    // video_views and certifications rows to the current user's email.
-    // This ensures that when the current user later logs in on a new device/browser,
-    // the email-based lookup still finds the correct counts.
+    // ── Identity link — record this visitor_id against this user ──────────────
+    // ON CONFLICT DO NOTHING means we never update existing rows — purely additive.
+    // Every device a user logs in with gets its own row. Lookups query all of them.
     try {
-      const currentEmail = req.session.email.toLowerCase().trim();
-
-      // Copy video views: update any rows for this visitorId that have a different email
-      await db.query(`
-        UPDATE video_views
-        SET email = $1
-        WHERE visitor_id = $2
-          AND LOWER(email) != $1
-      `, [currentEmail, visitorId]);
-
-      // Also ensure there's a cert row tied to this email if one exists for the visitorId
-      await db.query(`
-        UPDATE certifications
-        SET email = $1
-        WHERE visitor_id = $2
-          AND LOWER(email) != $1
-      `, [currentEmail, visitorId]);
-
-      console.log(`[login] email inheritance applied — visitorId: ${visitorId}, email: ${currentEmail}`);
+      await db.query(
+        `INSERT INTO identity_links (user_id, visitor_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [req.session.userId, visitorId]
+      );
+      console.log(`[login] identity_links: user ${req.session.userId} ↔ visitor ${visitorId}`);
     } catch(e) {
-      console.warn('[login] email inheritance failed (non-fatal):', e.message);
+      console.warn('[login] identity_links insert failed (non-fatal):', e.message);
     }
 
     // Persist signals to smart_signals table when we have them
@@ -905,8 +901,8 @@ app.get('/api/me', async (req, res) => {
     }
     const [dev, watchedIds, cert] = await Promise.all([
       getDevice(vid),
-      getVideoViews(vid, req.session.email),
-      getCert(vid, req.session.email),
+      getVideoViews(vid, req.session.userId),
+      getCert(vid, req.session.userId),
     ]);
     // Parse fp_signals for client-side fpCache seeding
     const fpSigs = dev?.fp_signals || {};
@@ -1193,11 +1189,11 @@ app.get('/api/contact/count', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/video/watch', requireAuthAndSession, async (req, res) => {
   const { videoId } = req.body;
-  const vid   = req.session.visitorId;
-  const email = req.session.email;
+  const vid    = req.session.visitorId;
+  const userId = req.session.userId;
   try {
-    // Check watched videos by visitor_id OR email — prevents multi-account abuse
-    const watchedIds = await getVideoViews(vid, email);
+    // Check watched videos across all devices this user has ever used (via identity_links)
+    const watchedIds = await getVideoViews(vid, userId);
     if (watchedIds.includes(videoId)) {
       return res.json({ ok: true, rewatch: true, videoId,
         watched: watchedIds.length, limit: CONFIG.VIDEO_LIMIT,
@@ -1207,12 +1203,9 @@ app.post('/api/video/watch', requireAuthAndSession, async (req, res) => {
       return res.status(403).json({ ok: false, reason: 'limit_reached',
         watched: watchedIds.length, limit: CONFIG.VIDEO_LIMIT });
 
-    // Store both visitor_id and email so future lookups can match on either
     await db.query(
-      `INSERT INTO video_views (visitor_id, email, video_id)
-       VALUES ($1, $2, $3)
-       ON CONFLICT DO NOTHING`,
-      [vid, email.toLowerCase().trim(), videoId]
+      `INSERT INTO video_views (visitor_id, video_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [vid, videoId]
     );
     const newWatched = [...watchedIds, videoId];
     res.json({ ok: true, rewatch: false, videoId,
@@ -1229,11 +1222,11 @@ app.post('/api/video/watch', requireAuthAndSession, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/cert/submit', requireAuthAndSession, async (req, res) => {
   const { answers, visitorIdAtSubmission } = req.body;
-  const vid   = req.session.visitorId;
-  const email = req.session.email;
+  const vid    = req.session.visitorId;
+  const userId = req.session.userId;
   try {
-    // Check by visitor_id OR email — prevents creating a new account to retry
-    const cert = await getCert(vid, email);
+    // Check across all devices this user has ever used
+    const cert = await getCert(vid, userId);
     if (cert?.passed) return res.json({ ok: true, alreadyCertified: true, score: cert.score });
     if (cert?.attempts >= 1)
       return res.status(403).json({
@@ -1241,23 +1234,21 @@ app.post('/api/cert/submit', requireAuthAndSession, async (req, res) => {
         message: 'No attempts remaining for this device or account.',
       });
 
-    if (visitorIdAtSubmission && visitorIdAtSubmission !== vid) {
+    if (visitorIdAtSubmission && visitorIdAtSubmission !== vid)
       return res.status(403).json({ ok: false, reason: 'visitor_id_mismatch',
         error: 'Device mismatch detected. Please log out and log in again.' });
-    }
 
     const CORRECT = [1, 0, 2, 1, 3];
     const score   = answers.reduce((n, a, i) => n + (a === CORRECT[i] ? 1 : 0), 0);
     const passed  = score >= 4;
     const now     = new Date();
 
-    // Store email so future lookups can match on either visitor_id or email
     await db.query(`
-      INSERT INTO certifications (visitor_id, email, attempts, passed, score, submitted_at)
-      VALUES ($1,$2,1,$3,$4,$5)
+      INSERT INTO certifications (visitor_id, attempts, passed, score, submitted_at)
+      VALUES ($1, 1, $2, $3, $4)
       ON CONFLICT (visitor_id) DO UPDATE SET
-        attempts = certifications.attempts + 1, passed = $3, score = $4, submitted_at = $5
-    `, [vid, email.toLowerCase().trim(), passed, score, now]);
+        attempts = certifications.attempts + 1, passed = $2, score = $3, submitted_at = $4
+    `, [vid, passed, score, now]);
 
     res.json({ ok: true, passed, score, total: 5, submittedAt: now.toISOString() });
   } catch (e) {
@@ -1271,23 +1262,21 @@ app.post('/api/cert/submit', requireAuthAndSession, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/review/submit', requireAuthAndSession, async (req, res) => {
   const { email, rating, subject, body: reviewBody, visitorIdAtSubmission, suspectScore, vpn } = req.body;
-  const vid       = req.session.visitorId;
-  const sessEmail = req.session.email;
+  const vid    = req.session.visitorId;
+  const userId = req.session.userId;
   if (!email) return res.status(400).json({ ok: false, error: 'Email is required.' });
   try {
-    // Check by visitor_id OR session email — prevents creating a new account to re-submit
-    const byDevice = await getReview(vid, sessEmail);
+    // Check across all devices this user has ever used
+    const byDevice = await getReview(vid, userId);
     if (byDevice) return res.status(403).json({ ok: false, reason: 'device_already_submitted',
       error: `This device or account has already submitted a review from: ${byDevice.email}`,
       submittedEmail: byDevice.email });
 
-    // Also check the gift card email they typed, in case it differs from account email
-    if (email.toLowerCase().trim() !== sessEmail.toLowerCase().trim()) {
-      const { rows: byGiftEmail } = await db.query(
-        'SELECT visitor_id FROM reviews WHERE LOWER(email) = LOWER($1)', [email]);
-      if (byGiftEmail.length) return res.status(403).json({ ok: false, reason: 'email_already_used',
-        error: 'This email address has already been used to claim a gift card.' });
-    }
+    // Also check the gift card email in case it was already used by anyone
+    const { rows: byGiftEmail } = await db.query(
+      'SELECT visitor_id FROM reviews WHERE LOWER(email) = LOWER($1)', [email]);
+    if (byGiftEmail.length) return res.status(403).json({ ok: false, reason: 'email_already_used',
+      error: 'This email address has already been used to claim a gift card.' });
 
     if (visitorIdAtSubmission && visitorIdAtSubmission !== vid)
       return res.status(403).json({ ok: false, reason: 'visitor_id_mismatch',
@@ -1321,7 +1310,7 @@ app.post('/api/review/submit', requireAuthAndSession, async (req, res) => {
 
 app.get('/api/review/status', requireAuthAndSession, async (req, res) => {
   try {
-    const review = await getReview(req.session.visitorId, req.session.email);
+    const review = await getReview(req.session.visitorId, req.session.userId);
     if (review) return res.json({ ok: true, submitted: true, email: review.email,
       status: review.status, submittedAt: review.submitted_at });
     res.json({ ok: true, submitted: false });
