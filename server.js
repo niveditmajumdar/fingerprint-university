@@ -184,18 +184,38 @@ function signalsAreFresh(dev) {
   return ageMinutes < CONFIG.SIGNAL_TTL_MINUTES;
 }
 
-async function getVideoViews(visitorId) {
-  const { rows } = await db.query('SELECT video_id FROM video_views WHERE visitor_id = $1', [visitorId]);
+async function getVideoViews(visitorId, email) {
+  // Return watched video IDs for this device OR this email account.
+  // Using UNION to combine both lookups so either match counts.
+  const { rows } = await db.query(`
+    SELECT DISTINCT video_id FROM video_views
+    WHERE visitor_id = $1
+       OR LOWER(email) = LOWER($2)
+  `, [visitorId, email || '']);
   return rows.map(r => r.video_id);
 }
 
-async function getCert(visitorId) {
-  const { rows } = await db.query('SELECT * FROM certifications WHERE visitor_id = $1', [visitorId]);
+async function getCert(visitorId, email) {
+  // Return certification record for this device OR this email account.
+  const { rows } = await db.query(`
+    SELECT * FROM certifications
+    WHERE visitor_id = $1
+       OR LOWER(email) = LOWER($2)
+    ORDER BY submitted_at DESC NULLS LAST
+    LIMIT 1
+  `, [visitorId, email || '']);
   return rows[0] || null;
 }
 
-async function getReview(visitorId) {
-  const { rows } = await db.query('SELECT * FROM reviews WHERE visitor_id = $1', [visitorId]);
+async function getReview(visitorId, email) {
+  // Return review for this device OR this email account.
+  const { rows } = await db.query(`
+    SELECT * FROM reviews
+    WHERE visitor_id = $1
+       OR LOWER(email) = LOWER($2)
+    ORDER BY submitted_at DESC NULLS LAST
+    LIMIT 1
+  `, [visitorId, email || '']);
   return rows[0] || null;
 }
 
@@ -854,7 +874,11 @@ app.get('/api/me', async (req, res) => {
         freeLimit: CONFIG.VIDEO_LIMIT, videosWatched: 0, remaining: CONFIG.VIDEO_LIMIT, watchedIds: [],
         certified: false, certAttempts: 0, certScore: null, certSubmittedAt: null, suspectScore: 0 });
     }
-    const [dev, watchedIds, cert] = await Promise.all([getDevice(vid), getVideoViews(vid), getCert(vid)]);
+    const [dev, watchedIds, cert] = await Promise.all([
+      getDevice(vid),
+      getVideoViews(vid, req.session.email),
+      getCert(vid, req.session.email),
+    ]);
     // Parse fp_signals for client-side fpCache seeding
     const fpSigs = dev?.fp_signals || {};
     res.json({
@@ -1140,9 +1164,11 @@ app.get('/api/contact/count', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/video/watch', requireAuthAndSession, async (req, res) => {
   const { videoId } = req.body;
-  const vid = req.session.visitorId;
+  const vid   = req.session.visitorId;
+  const email = req.session.email;
   try {
-    const watchedIds = await getVideoViews(vid);
+    // Check watched videos by visitor_id OR email — prevents multi-account abuse
+    const watchedIds = await getVideoViews(vid, email);
     if (watchedIds.includes(videoId)) {
       return res.json({ ok: true, rewatch: true, videoId,
         watched: watchedIds.length, limit: CONFIG.VIDEO_LIMIT,
@@ -1151,7 +1177,14 @@ app.post('/api/video/watch', requireAuthAndSession, async (req, res) => {
     if (watchedIds.length >= CONFIG.VIDEO_LIMIT)
       return res.status(403).json({ ok: false, reason: 'limit_reached',
         watched: watchedIds.length, limit: CONFIG.VIDEO_LIMIT });
-    await db.query('INSERT INTO video_views (visitor_id, video_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [vid, videoId]);
+
+    // Store both visitor_id and email so future lookups can match on either
+    await db.query(
+      `INSERT INTO video_views (visitor_id, email, video_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT DO NOTHING`,
+      [vid, email.toLowerCase().trim(), videoId]
+    );
     const newWatched = [...watchedIds, videoId];
     res.json({ ok: true, rewatch: false, videoId,
       watched: newWatched.length, limit: CONFIG.VIDEO_LIMIT,
@@ -1167,14 +1200,18 @@ app.post('/api/video/watch', requireAuthAndSession, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/cert/submit', requireAuthAndSession, async (req, res) => {
   const { answers, visitorIdAtSubmission } = req.body;
-  const vid = req.session.visitorId;
+  const vid   = req.session.visitorId;
+  const email = req.session.email;
   try {
-    const cert = await getCert(vid);
+    // Check by visitor_id OR email — prevents creating a new account to retry
+    const cert = await getCert(vid, email);
     if (cert?.passed) return res.json({ ok: true, alreadyCertified: true, score: cert.score });
     if (cert?.attempts >= 1)
-      return res.status(403).json({ ok: false, reason: 'no_attempts', message: 'No attempts remaining on this device.' });
+      return res.status(403).json({
+        ok: false, reason: 'no_attempts',
+        message: 'No attempts remaining for this device or account.',
+      });
 
-    // Visitor ID mismatch check (session transfer detection)
     if (visitorIdAtSubmission && visitorIdAtSubmission !== vid) {
       return res.status(403).json({ ok: false, reason: 'visitor_id_mismatch',
         error: 'Device mismatch detected. Please log out and log in again.' });
@@ -1185,12 +1222,13 @@ app.post('/api/cert/submit', requireAuthAndSession, async (req, res) => {
     const passed  = score >= 4;
     const now     = new Date();
 
+    // Store email so future lookups can match on either visitor_id or email
     await db.query(`
-      INSERT INTO certifications (visitor_id, attempts, passed, score, submitted_at)
-      VALUES ($1,1,$2,$3,$4)
+      INSERT INTO certifications (visitor_id, email, attempts, passed, score, submitted_at)
+      VALUES ($1,$2,1,$3,$4,$5)
       ON CONFLICT (visitor_id) DO UPDATE SET
-        attempts = certifications.attempts + 1, passed = $2, score = $3, submitted_at = $4
-    `, [vid, passed, score, now]);
+        attempts = certifications.attempts + 1, passed = $3, score = $4, submitted_at = $5
+    `, [vid, email.toLowerCase().trim(), passed, score, now]);
 
     res.json({ ok: true, passed, score, total: 5, submittedAt: now.toISOString() });
   } catch (e) {
@@ -1204,17 +1242,23 @@ app.post('/api/cert/submit', requireAuthAndSession, async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 app.post('/api/review/submit', requireAuthAndSession, async (req, res) => {
   const { email, rating, subject, body: reviewBody, visitorIdAtSubmission, suspectScore, vpn } = req.body;
-  const vid = req.session.visitorId;
+  const vid       = req.session.visitorId;
+  const sessEmail = req.session.email;
   if (!email) return res.status(400).json({ ok: false, error: 'Email is required.' });
   try {
-    const byDevice = await getReview(vid);
+    // Check by visitor_id OR session email — prevents creating a new account to re-submit
+    const byDevice = await getReview(vid, sessEmail);
     if (byDevice) return res.status(403).json({ ok: false, reason: 'device_already_submitted',
-      error: `This device has already submitted a review from: ${byDevice.email}`, submittedEmail: byDevice.email });
+      error: `This device or account has already submitted a review from: ${byDevice.email}`,
+      submittedEmail: byDevice.email });
 
-    const { rows: byEmail } = await db.query(
-      'SELECT visitor_id FROM reviews WHERE LOWER(email) = LOWER($1)', [email]);
-    if (byEmail.length) return res.status(403).json({ ok: false, reason: 'email_already_used',
-      error: 'This email address has already been used to claim a gift card.' });
+    // Also check the gift card email they typed, in case it differs from account email
+    if (email.toLowerCase().trim() !== sessEmail.toLowerCase().trim()) {
+      const { rows: byGiftEmail } = await db.query(
+        'SELECT visitor_id FROM reviews WHERE LOWER(email) = LOWER($1)', [email]);
+      if (byGiftEmail.length) return res.status(403).json({ ok: false, reason: 'email_already_used',
+        error: 'This email address has already been used to claim a gift card.' });
+    }
 
     if (visitorIdAtSubmission && visitorIdAtSubmission !== vid)
       return res.status(403).json({ ok: false, reason: 'visitor_id_mismatch',
@@ -1248,7 +1292,7 @@ app.post('/api/review/submit', requireAuthAndSession, async (req, res) => {
 
 app.get('/api/review/status', requireAuthAndSession, async (req, res) => {
   try {
-    const review = await getReview(req.session.visitorId);
+    const review = await getReview(req.session.visitorId, req.session.email);
     if (review) return res.json({ ok: true, submitted: true, email: review.email,
       status: review.status, submittedAt: review.submitted_at });
     res.json({ ok: true, submitted: false });
