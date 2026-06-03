@@ -416,6 +416,7 @@ app.post('/api/signup', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     await db.query('INSERT INTO users (email, password_hash, name) VALUES ($1,$2,$3)',
       [email.toLowerCase().trim(), hash, name.trim()]);
+    // Never echo password or hash back in the response
     res.json({ ok: true });
   } catch (e) {
     console.error('[signup]', e.message);
@@ -434,6 +435,7 @@ app.post('/api/login', async (req, res) => {
     if (!match) return res.status(401).json({ ok: false, error: 'Invalid email or password.' });
     req.session.email  = rows[0].email;
     req.session.userId = rows[0].id;
+    // Never echo password_hash or any credential back in the response
     res.json({ ok: true, name: rows[0].name });
   } catch (e) {
     console.error('[login]', e.message);

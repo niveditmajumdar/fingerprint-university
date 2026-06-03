@@ -293,7 +293,6 @@
     <button class="tab-btn" onclick="switchTab('docs',this)"><span class="tab-icon">📖</span>Documentation</button>
     <button class="tab-btn" onclick="switchTab('certify',this)"><span class="tab-icon">🏆</span>Get certified</button>
     <button class="tab-btn" onclick="switchTab('review',this)"><span class="tab-icon">⭐</span>Leave a review</button>
-    <button class="tab-btn" onclick="switchTab('swag',this)"><span class="tab-icon">👕</span>Swag store <span class="coming-pill">Soon</span></button>
   </div>
 
   <!-- ── VIDEO TAB ── -->
@@ -582,15 +581,7 @@ if (hash !== expected) return res.status(401).send();</div></div>
   </div>
 
   <!-- SWAG TAB -->
-  <div class="tab-panel" id="panel-swag">
-    <div class="coming-soon-panel">
-      <div class="cs-icon">👕</div>
-      <h2 class="cs-title">Swag Store</h2>
-      <p class="cs-desc">Redeem your learning credits for Fingerprint-branded swag.</p>
-      <span class="cs-badge">Coming soon</span>
-    </div>
-  </div>
-</main>
+
 
 <!-- VIDEO PLAYER MODAL -->
 <div class="modal-backdrop" id="video-modal">
@@ -719,8 +710,6 @@ if (hash !== expected) return res.status(401).send();</div></div>
   <a href="https://docs.fingerprint.com/docs/use-case-tutorials-overview" target="_blank">Use cases</a>
   <span class="sep">|</span>
   <button class="footer-link" onclick="openReportCard()">📊 Device report card</button>
-  <span class="sep">|</span>
-  <button class="footer-link" onclick="document.getElementById('how-modal').classList.add('open')">❓ How does this PoC work?</button>
   <span class="sep">|</span>
   <button class="footer-link" onclick="openSmartSignals()">⚡ Smart signals</button>
   <span class="sep">|</span>

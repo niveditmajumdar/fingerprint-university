@@ -120,6 +120,28 @@
     <p class="page-sub">Live validation rules, API call log, and device signal events for this session. Independent of the student-facing interface.</p>
   </div>
 
+  <!-- HOW THIS POC WORKS -->
+  <div class="panel" style="margin-bottom:24px">
+    <div class="panel-header">
+      <span class="panel-title">How this PoC works</span>
+    </div>
+    <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+      <div class="val-section" style="border-right:1px solid var(--border);padding-right:24px">
+        <div class="val-section-title">Identification flow</div>
+        <div class="how-step"><div class="how-step-num">1</div><div class="how-step-text"><strong>Sign In → v4 JS agent runs</strong><span>The agent collects 300+ browser signals and returns a sealed encrypted blob containing the visitorId and all Smart Signals. The sealed blob is decrypted server-side — no separate Server API call needed at login.</span></div></div>
+        <div class="how-step"><div class="how-step-num">2</div><div class="how-step-text"><strong>Sealed Client Results (primary path)</strong><span>Every touch point — login, cert submit, review submit, contact form — sends the sealed blob to the server. The server decrypts it with FP_SEALED_KEY and extracts signals in one round trip. Tamper-proof: the blob cannot be forged or modified by the client.</span></div></div>
+        <div class="how-step"><div class="how-step-num">3</div><div class="how-step-text"><strong>Server API (fallback + Smart Signals tab)</strong><span>If sealed decryption fails, the server falls back to GET /events/:requestId via the Fingerprint Server API. The ⚡ Smart Signals footer link always uses the Server API intentionally, to demonstrate both mechanisms side by side.</span></div></div>
+      </div>
+      <div class="val-section" style="padding-left:24px">
+        <div class="val-section-title">Fraud enforcement</div>
+        <div class="how-step"><div class="how-step-num">4</div><div class="how-step-text"><strong>Video limit tied to visitorId, not email</strong><span>The server keys all counters to visitorId. Log out, switch accounts, use incognito — the same device hits the same counter. A different email on the same device doesn't reset the limit.</span></div></div>
+        <div class="how-step"><div class="how-step-num">5</div><div class="how-step-text"><strong>Single-session enforcement</strong><span>One active session per device (active_session_token) and one active device per user (active_visitor_id). Logging in from a second device displaces the first session. A heartbeat ping every 60s keeps the session alive; 5 min of silence marks it stale.</span></div></div>
+        <div class="how-step"><div class="how-step-num">6</div><div class="how-step-text"><strong>Friction-based validation</strong><span>Suspect score ≥12, VPN, bot detection, or timezone mismatch triggers a friction modal at cert submit, review submit, and contact form. The user can dismiss and proceed — this is intentional friction, not a hard block, so the PoC remains demonstrable.</span></div></div>
+        <div class="how-step"><div class="how-step-num">7</div><div class="how-step-text"><strong>One cert attempt + one review per device</strong><span>Creating a new account doesn't reset the certification attempt or review submission — they're keyed to visitorId. Review deduplication also checks email case-insensitively.</span></div></div>
+      </div>
+    </div>
+  </div>
+
   <div class="admin-grid">
 
     <!-- LEFT: Validations & Rules -->
