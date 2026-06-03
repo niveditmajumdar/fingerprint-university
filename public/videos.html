@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fingerprint University</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+  /* ── Toast notifications ─────────────────────────────────────────────────── */
+  .toast-container { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+  .toast { display:flex; align-items:flex-start; gap:10px; padding:12px 16px; border-radius:10px; font-size:13px; font-family:'Inter',sans-serif; max-width:340px; pointer-events:all; box-shadow:0 4px 20px rgba(0,0,0,.25); animation:toast-in .25s ease; }
+  .toast.toast-warn  { background:#1e1a12; border:1px solid rgba(245,158,11,.4); color:#fbbf24; }
+  .toast.toast-info  { background:#0f1f0f; border:1px solid rgba(34,197,94,.3);  color:#86efac; }
+  .toast.toast-error { background:#1f0f0f; border:1px solid rgba(239,68,68,.3);  color:#fca5a5; }
+  .toast-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+  .toast-body { line-height:1.5; }
+  .toast-title { font-weight:600; margin-bottom:2px; }
+  .toast-msg   { font-size:12px; opacity:.8; }
+  @keyframes toast-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes toast-out { to { opacity:0; transform:translateY(12px); } }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    [data-theme="dark"]{
+      --bg:#08090d;--surface:#0e0f16;--card:#13141e;--card2:#1a1b28;
+      --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+      --text:#ededee;--text2:#b0b1be;--muted:#6c6d80;
+      --accent:#f97316;--accent2:#fdba74;
+      --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#60a5fa;
+      --tab-bg:#0e0f16;--tab-active:#13141e;--shadow:rgba(0,0,0,0.4);
+    }
+    [data-theme="light"]{
+      --bg:#f0f1f5;--surface:#ffffff;--card:#ffffff;--card2:#f8f9fb;
+      --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+      --text:#0d0e14;--text2:#3c3d4e;--muted:#7a7b8e;
+      --accent:#ea6b0e;--accent2:#c45a08;
+      --green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#2563eb;
+      --tab-bg:#eaebee;--tab-active:#ffffff;--shadow:rgba(0,0,0,0.08);
+    }
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+    header{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:24px;position:fixed;top:0;left:0;right:0;z-index:50;background:var(--surface);box-shadow:0 1px 0 var(--border)}
+    /* Push main content below fixed header */
+    body{padding-top:56px;padding-bottom:52px}
+    .logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+    .logo-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
+    .header-nav{display:flex;gap:18px}
+    .header-nav a{font-size:14px;color:var(--muted);text-decoration:none;transition:color .15s;white-space:nowrap}
+    .header-nav a:hover{color:var(--accent)}
+    .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .user-name{font-size:14px;color:var(--muted);white-space:nowrap}
+    .user-name strong{color:var(--text);font-weight:600}
+    .icon-btn{width:34px;height:34px;border-radius:8px;background:transparent;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:border-color .15s;color:var(--muted);font-family:'Inter',sans-serif}
+    .icon-btn:hover{border-color:var(--accent);background:rgba(249,115,22,.08)}
+    .logout-btn{padding:5px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:border-color .15s,color .15s;font-family:'Inter',sans-serif}
+    .logout-btn:hover{border-color:var(--red);color:var(--red)}
+    main{flex:1;max-width:1400px;width:100%;margin:0 auto;padding:24px 28px 60px;display:flex;flex-direction:column;gap:20px}
+    .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;flex-direction:column;gap:5px}
+    .stat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .stat-value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--text);line-height:1}
+    .stat-value.green{color:var(--green)}.stat-value.amber{color:var(--amber)}.stat-value.red{color:var(--red)}
+    .stat-sub{font-size:12px;color:var(--muted)}
+    .dots-row{display:flex;gap:7px;align-items:center;margin-top:3px}
+    .dot{width:16px;height:16px;border-radius:50%;background:var(--border2);border:1.5px solid var(--border2);transition:all .3s}
+    .dot.watched{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px rgba(249,115,22,.45)}
+    .dot.last{background:var(--amber);border-color:var(--amber)}
+    .fp-stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px}
+    .fp-stat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .fp-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
+    .visitor-id-large{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--accent2);word-break:break-all;margin-bottom:8px;line-height:1.5}
+    .sig-chips{display:flex;gap:5px;flex-wrap:wrap}
+    .sig-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);color:var(--muted)}
+    .sig-chip.green{border-color:rgba(34,197,94,.3);color:var(--green);background:rgba(34,197,94,.07)}
+    .sig-chip.amber{border-color:rgba(245,158,11,.3);color:var(--amber);background:rgba(245,158,11,.07)}
+    .sig-chip.red{border-color:rgba(239,68,68,.3);color:var(--red);background:rgba(239,68,68,.07)}
+    .upgrade-nudge{display:none;background:var(--card);border:1px solid rgba(249,115,22,.25);border-radius:10px;padding:14px 20px;align-items:center;gap:14px;flex-wrap:wrap}
+    .upgrade-nudge.show{display:flex}
+    .nudge-text{font-size:14px;color:var(--muted);flex:1}
+    .nudge-text strong{color:var(--text)}
+    .nudge-link{font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;border:1px solid rgba(249,115,22,.35);padding:6px 16px;border-radius:6px;transition:background .15s;cursor:pointer}
+    .nudge-link:hover{background:rgba(249,115,22,.1)}
+    .tab-bar{display:flex;gap:2px;background:var(--tab-bg);border:1px solid var(--border);border-radius:12px;padding:4px;width:100%}
+    .tab-btn{flex:1;padding:12px 10px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:18px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:8px}
+    .tab-btn:hover{color:var(--text)}
+    .tab-btn.active{background:var(--tab-active);color:var(--text);font-weight:600;box-shadow:0 1px 3px var(--shadow)}
+    .tab-btn .tab-icon{font-size:16px}
+    .coming-pill{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:rgba(249,115,22,.15);color:var(--accent);padding:2px 7px;border-radius:100px}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+    .section-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+    .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+    .video-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s}
+    .video-card:not(.locked):hover{border-color:rgba(249,115,22,.4);transform:translateY(-3px);box-shadow:0 16px 40px var(--shadow)}
+    .video-card.locked{opacity:.4}
+    .thumb-wrap{position:relative;padding-top:56.25%;background:var(--surface);cursor:pointer;overflow:hidden}
+    .video-card.locked .thumb-wrap{cursor:default}
+    .thumb-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .3s}
+    .video-card:not(.locked):hover .thumb-wrap img{transform:scale(1.04)}
+    .play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.28);transition:background .2s}
+    .video-card:not(.locked):hover .play-overlay{background:rgba(0,0,0,.1)}
+    .play-circle{width:54px;height:54px;background:rgba(249,115,22,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(249,115,22,.45);transition:transform .2s}
+    .video-card:not(.locked):hover .play-circle{transform:scale(1.1)}
+    .rewatch-badge{position:absolute;top:10px;right:10px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;background:rgba(34,197,94,.85);color:#fff;padding:3px 8px;border-radius:100px}
+    .lock-overlay{position:absolute;inset:0;background:rgba(8,9,13,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+    .lock-text{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+    .video-info{padding:14px 16px 18px}
+    .video-title{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:4px}
+    .video-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+    .watched-tag{display:inline-flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--green);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);padding:2px 8px;border-radius:100px;margin-top:7px}
+    .docs-layout{display:grid;grid-template-columns:210px 1fr;gap:20px}
+    .docs-sidebar{display:flex;flex-direction:column;gap:4px}
+    .docs-nav-item{padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;border:1px solid transparent;display:flex;align-items:center;gap:8px}
+    .docs-nav-item:hover{color:var(--text);background:var(--card)}
+    .docs-nav-item.active{color:var(--accent);background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2)}
+    .doc-panel{display:none}.doc-panel.active{display:block}
+    .doc-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:32px 36px}
+    .doc-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+    .doc-title{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+    .doc-intro{font-size:15px;line-height:1.7;color:var(--text2);margin-bottom:24px}
+    .doc-section{margin-bottom:24px}
+    .doc-section h3{font-size:15px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .doc-section p{font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:10px}
+    .doc-section ul{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+    .doc-section li{font-size:14px;line-height:1.6;color:var(--text2)}
+    .doc-section li strong{color:var(--text);font-weight:600}
+    .code-block{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:14px 18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent2);line-height:1.6;overflow-x:auto;margin:10px 0}
+    .signal-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+    .signal-table th{text-align:left;padding:8px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+    .signal-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+    .signal-table tr:last-child td{border-bottom:none}
+    .signal-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent2)}
+    .doc-link{display:inline-flex;align-items:center;gap:6px;margin-top:20px;padding:10px 20px;background:transparent;border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s}
+    .doc-link:hover{background:rgba(249,115,22,.1)}
+    .cert-wrap{width:100%}
+    .cert-header{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;margin-bottom:20px}
+    .cert-header h2{font-size:22px;font-weight:700;margin-bottom:8px}
+    .cert-header p{font-size:14px;color:var(--muted);line-height:1.65}
+    .cert-rule{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);margin-top:12px;padding:10px 14px;background:var(--surface);border-radius:8px;border:1px solid var(--border2);line-height:1.5}
+    .cert-rule .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
+    .cert-already{background:var(--card);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:32px;text-align:center;margin-bottom:20px}
+    .cert-already h3{font-size:18px;font-weight:700;color:var(--green);margin-bottom:8px}
+    .cert-already p{font-size:14px;color:var(--muted);margin-bottom:16px}
+    .question-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:12px}
+    .q-num{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+    .q-text{font-size:15px;font-weight:600;margin-bottom:14px;line-height:1.4}
+    .options{display:flex;flex-direction:column;gap:8px}
+    .option{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border2);border-radius:8px;cursor:pointer;transition:all .15s;font-size:14px;color:var(--text2)}
+    .option:hover{border-color:var(--accent);color:var(--text);background:rgba(249,115,22,.05)}
+    .option.selected{border-color:var(--accent);background:rgba(249,115,22,.1);color:var(--text)}
+    .option input{accent-color:var(--accent)}
+    .btn-submit-cert{margin-top:8px;padding:13px 32px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s}
+    .btn-submit-cert:hover{opacity:.88}
+    .btn-submit-cert:disabled{opacity:.45;cursor:not-allowed}
+    /* ── QUIZ UI ── */
+    .quiz-start{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:40px;text-align:center;margin-bottom:12px}
+    .quiz-start h3{font-size:20px;font-weight:700;margin-bottom:10px}
+    .quiz-start p{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:24px}
+    .quiz-rules{display:flex;flex-direction:column;gap:8px;text-align:left;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:16px 20px;margin:0 auto 28px;max-width:480px}
+    .quiz-rule-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
+    .quiz-rule-icon{font-size:16px;flex-shrink:0}
+    .btn-start-quiz{padding:14px 40px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s}
+    .btn-start-quiz:hover{opacity:.88}
+    .quiz-chrome{display:none}
+    .quiz-chrome.active{display:block}
+    .quiz-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 20px;margin-bottom:16px;gap:12px}
+    .quiz-progress-label{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+    .quiz-progress-label strong{color:var(--text);font-size:14px}
+    .quiz-timer{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--green);display:flex;align-items:center;gap:6px}
+    .quiz-timer.warn{color:var(--amber)}
+    .quiz-timer.danger{color:var(--red);animation:timerPulse .8s ease-in-out infinite}
+    @keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .quiz-progress-dots{display:flex;gap:5px;flex-wrap:wrap}
+    .q-dot{width:11px;height:11px;border-radius:50%;background:var(--border2);border:1.5px solid var(--border2);cursor:pointer;transition:all .15s;flex-shrink:0}
+    .q-dot.answered{background:var(--accent);border-color:var(--accent)}
+    .q-dot.current{box-shadow:0 0 0 2px var(--text)}
+    .question-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+    .quiz-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px;flex-wrap:wrap}
+    .btn-nav{padding:10px 24px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--text);cursor:pointer;transition:border-color .15s,opacity .15s}
+    .btn-nav:hover:not(:disabled){border-color:var(--accent)}
+    .btn-nav:disabled{opacity:.3;cursor:not-allowed}
+    /* ── Verify modal ── */
+    #verify-modal .modal-box{max-width:460px;padding:40px 36px;text-align:center}
+    .verify-icon{font-size:44px;margin-bottom:14px}
+    .verify-title{font-size:20px;font-weight:700;margin-bottom:10px}
+    .verify-body{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:20px}
+    .verify-code-input{width:100%;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:22px;text-align:center;letter-spacing:.3em;color:var(--text);outline:none;margin-bottom:8px;transition:border-color .15s}
+    .verify-code-input:focus{border-color:var(--accent)}
+    .verify-error{font-size:13px;color:var(--red);margin-bottom:12px;min-height:18px}
+    .btn-send-code{width:100%;padding:10px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:8px;transition:border-color .15s,color .15s}
+    .btn-send-code:hover{border-color:var(--accent);color:var(--text)}
+    .btn-verify-code{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px}
+    .btn-verify-code:hover{opacity:.88}
+    .btn-verify-code:disabled{opacity:.45;cursor:not-allowed}
+    .coming-soon-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:64px 32px;text-align:center}
+    .cs-icon{font-size:52px;margin-bottom:18px}
+    .cs-title{font-size:22px;font-weight:700;margin-bottom:10px}
+    .cs-desc{font-size:15px;color:var(--muted);line-height:1.65;max-width:440px;margin:0 auto 24px}
+    .cs-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:rgba(249,115,22,.1);color:var(--accent);border:1px solid rgba(249,115,22,.25);padding:6px 16px;border-radius:100px}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;padding:24px}
+    .modal-backdrop.open{display:flex}
+    .modal-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6);position:relative}
+    .modal-close-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background .15s;z-index:1}
+    .modal-close-btn:hover{background:var(--surface);color:var(--text)}
+    #video-modal .modal-box{max-width:820px}
+    .modal-header{padding:13px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+    .modal-title{font-size:14px;font-weight:600}
+    .modal-body iframe{display:block;width:100%;aspect-ratio:16/9;border:none}
+    #paywall-modal .modal-box{max-width:460px;padding:40px 36px;text-align:center}
+    .paywall-icon{font-size:44px;margin-bottom:14px}
+    .paywall-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+    .paywall-body{font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:24px}
+    .paywall-body strong{color:var(--text)}
+    .paywall-benefits{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px 18px;margin-bottom:24px;text-align:left}
+    .benefit-row{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);padding:4px 0}
+    .benefit-row .check{color:var(--green);flex-shrink:0}
+    .benefit-row span{color:var(--text)}
+    .paywall-cta{display:block;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;transition:opacity .15s;margin-bottom:10px}
+    .paywall-cta:hover{opacity:.88}
+    .paywall-dismiss{font-size:13px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;transition:color .15s}
+    .paywall-dismiss:hover{color:var(--text)}
+    #cert-result-modal .modal-box{max-width:480px;padding:40px 36px;text-align:center}
+    .cert-result-icon{font-size:52px;margin-bottom:16px}
+    .cert-result-title{font-size:22px;font-weight:700;margin-bottom:10px}
+    .cert-result-body{font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:24px}
+    .btn-primary{display:block;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:opacity .15s}
+    .btn-primary:hover{opacity:.88}
+    .btn-secondary{font-size:13px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif}
+    #suspect-modal .modal-box{max-width:460px;padding:40px 36px;text-align:center}
+    .suspect-icon{font-size:44px;margin-bottom:14px}
+    .suspect-title{font-size:20px;font-weight:700;margin-bottom:10px}
+    .suspect-body{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px}
+    .suspect-score-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:6px 16px;border-radius:100px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25);margin-bottom:18px}
+    .suspect-signals{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+    #report-modal .modal-box{max-width:520px;padding:32px 36px}
+    .report-title{font-size:20px;font-weight:700;margin-bottom:4px}
+    .report-vid{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);word-break:break-all;margin-bottom:20px}
+    .report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+    .report-stat{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px 16px}
+    .report-stat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+    .report-stat-value{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600}
+    .report-sig-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+    #how-modal .modal-box{max-width:580px;padding:32px 36px;max-height:85vh;overflow-y:auto}
+    .how-title{font-size:20px;font-weight:700;margin-bottom:18px}
+    .how-step{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+    .how-step-num{width:28px;height:28px;border-radius:50%;background:rgba(249,115,22,.15);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .how-step-text strong{display:block;font-size:14px;font-weight:600;margin-bottom:3px}
+    .how-step-text span{font-size:13px;color:var(--muted);line-height:1.6}
+    .how-note{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--muted);line-height:1.6;margin-top:6px}
+    .how-note code{font-family:'IBM Plex Mono',monospace;color:var(--accent2);font-size:12px}
+    footer{border-top:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:center;gap:18px;background:var(--surface);flex-wrap:wrap;position:fixed;bottom:0;left:0;right:0;z-index:50}
+    footer a,footer button.footer-link{font-size:14px;color:var(--muted);text-decoration:none;transition:color .15s;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;padding:0}
+    footer a:hover,footer button.footer-link:hover{color:var(--accent)}
+    footer .sep{color:var(--border2);font-size:14px}
+    /* ── FPJS log modal ── */
+    #fplog-modal .modal-box{max-width:700px;padding:28px 32px;max-height:85vh;overflow-y:auto}
+    .fplog-title{font-size:18px;font-weight:700;margin-bottom:4px}
+    .fplog-sub{font-size:12px;color:var(--muted);margin-bottom:18px;font-family:'IBM Plex Mono',monospace}
+    .fplog-table{width:100%;border-collapse:collapse;font-size:12px}
+    .fplog-table th{text-align:left;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+    .fplog-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);vertical-align:top}
+    .fplog-table tr:last-child td{border-bottom:none}
+    .fplog-table tr:hover td{background:rgba(255,255,255,.02)}
+    .fplog-event{color:var(--accent2);font-weight:500}
+    .fplog-badge{display:inline-block;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600}
+    .fplog-badge.js{background:rgba(96,165,250,.1);color:var(--blue);border:1px solid rgba(96,165,250,.2)}
+    .fplog-badge.server{background:rgba(249,115,22,.1);color:var(--accent);border:1px solid rgba(249,115,22,.2)}
+    .fplog-badge.error{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    @media(max-width:900px){.stats-bar{grid-template-columns:1fr 1fr}.docs-layout{grid-template-columns:1fr}.docs-sidebar{flex-direction:row;flex-wrap:wrap}main{padding:20px 16px 40px}.tab-bar{overflow-x:auto}.tab-btn{font-size:14px}}
+    @media(max-width:600px){.stats-bar{grid-template-columns:1fr}.header-nav{display:none}.tab-btn{font-size:13px;padding:10px 6px}}
+  </style>
+</head>
+<body>
+<div class="toast-container" id="toast-container"></div>
+
+<header>
+  <a class="logo" href="/"><span class="logo-dot"></span>Fingerprint University</a>
+  <nav class="header-nav">
+    <a href="https://docs.fingerprint.com/docs/quick-start-guide" target="_blank">Docs</a>
+    <a href="https://docs.fingerprint.com/docs/smart-signals-introduction" target="_blank">Smart signals</a>
+    <a href="https://docs.fingerprint.com/docs/sealed-client-results" target="_blank">Sealed results</a>
+    <a href="https://docs.fingerprint.com/docs/webhooks" target="_blank">Webhooks</a>
+  </nav>
+  <div class="header-right">
+    <span class="user-name">Hi, <strong id="user-name">…</strong></span>
+    <button class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    <button class="logout-btn" onclick="logout()">Log out</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── TAB BAR — full width, at top ── -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('videos',this)"><span class="tab-icon">🎬</span>Video lectures</button>
+    <button class="tab-btn" onclick="switchTab('docs',this)"><span class="tab-icon">📖</span>Documentation</button>
+    <button class="tab-btn" onclick="switchTab('certify',this)"><span class="tab-icon">🏆</span>Get certified</button>
+    <button class="tab-btn" onclick="switchTab('review',this)"><span class="tab-icon">⭐</span>Leave a review</button>
+    <button class="tab-btn" onclick="switchTab('swag',this)"><span class="tab-icon">👕</span>Swag store <span class="coming-pill">Soon</span></button>
+  </div>
+
+  <!-- ── VIDEO TAB ── -->
+  <div class="tab-panel active" id="panel-videos">
+
+    <!-- Video-specific stats -->
+    <div class="stats-bar" style="margin-bottom:0">
+      <div class="stat-card">
+        <span class="stat-label">Videos watched</span>
+        <span class="stat-value" id="watched-val">–</span>
+        <span class="stat-sub">of 3 free videos</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Remaining</span>
+        <span class="stat-value" id="remaining-val">–</span>
+        <span class="stat-sub">free videos left</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Progress</span>
+        <div class="dots-row">
+          <div class="dot" id="dot-1"></div>
+          <div class="dot" id="dot-2"></div>
+          <div class="dot" id="dot-3"></div>
+        </div>
+        <span class="stat-sub" id="dots-sub">0 / 3 used</span>
+      </div>
+      <div class="fp-stat-card">
+        <div class="fp-stat-label"><span class="fp-live-dot"></span>Visitor ID (per-device)</div>
+        <div class="visitor-id-large" id="fp-vid-large">–</div>
+        <div class="sig-chips" id="fp-chips"></div>
+      </div>
+    </div>
+
+    <!-- Upgrade nudge -->
+    <div class="upgrade-nudge" id="upgrade-nudge">
+      <span class="nudge-text">You've watched <strong>3 videos</strong>. Enjoying the content?</span>
+      <span class="nudge-link" onclick="openPaywall()">View premium plan →</span>
+    </div>
+
+    <p class="section-label">Fingerprint YouTube channel</p>
+    <div class="video-grid" id="video-grid"></div>
+  </div>
+
+  <!-- DOCS TAB -->
+  <div class="tab-panel" id="panel-docs">
+    <div class="docs-layout">
+      <div class="docs-sidebar">
+        <div class="docs-nav-item active" onclick="switchDoc('intro',this)">🔬 What is Fingerprint?</div>
+        <div class="docs-nav-item" onclick="switchDoc('smartsignals',this)">⚡ Smart Signals</div>
+        <div class="docs-nav-item" onclick="switchDoc('botdetection',this)">🤖 Bot Detection</div>
+        <div class="docs-nav-item" onclick="switchDoc('install',this)">🛠️ Quick install</div>
+        <div class="docs-nav-item" onclick="switchDoc('webhooks',this)">🔔 Webhooks</div>
+      </div>
+      <div>
+        <div class="doc-panel active" id="doc-intro"><div class="doc-card">
+          <p class="doc-eyebrow">Overview</p><h2 class="doc-title">What is Fingerprint?</h2>
+          <p class="doc-intro">Fingerprint is a device intelligence platform that assigns a stable visitor ID to each browser — one that persists beyond cookies, incognito mode, VPNs, and browser resets.</p>
+          <div class="doc-section"><h3>🔑 Core concepts</h3><ul>
+            <li><strong>Visitor ID</strong> — Stable probabilistic identifier. Survives cookie clears and incognito mode.</li>
+            <li><strong>Request ID</strong> — Unique ID per identification call. Used to fetch Smart Signals from the Server API.</li>
+            <li><strong>Confidence score</strong> — 0–1 value indicating certainty. Above 0.7 is high confidence.</li>
+            <li><strong>Suspect Score</strong> — Weighted sum of triggered Smart Signals. Higher = more suspicious.</li>
+          </ul></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/introduction" target="_blank">Read full documentation ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-smartsignals"><div class="doc-card">
+          <p class="doc-eyebrow">Smart Signals</p><h2 class="doc-title">Smart Signals</h2>
+          <p class="doc-intro">Smart Signals provide actionable device intelligence. Only available server-side to prevent tampering.</p>
+          <div class="doc-section"><h3>📡 Available signals</h3>
+          <table class="signal-table"><thead><tr><th>Signal</th><th>What it detects</th></tr></thead><tbody>
+            <tr><td>botDetection</td><td>Automated browsers vs real users</td></tr>
+            <tr><td>vpnDetection</td><td>VPN and proxy usage</td></tr>
+            <tr><td>incognito</td><td>Private browsing mode</td></tr>
+            <tr><td>tampering</td><td>Modified browser fingerprint attributes</td></tr>
+            <tr><td>suspectScore</td><td>Weighted sum of all triggered signals</td></tr>
+          </tbody></table></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/smart-signals-introduction" target="_blank">Read Smart Signals docs ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-botdetection"><div class="doc-card">
+          <p class="doc-eyebrow">Smart Signals</p><h2 class="doc-title">Bot Detection</h2>
+          <p class="doc-intro">Analyses hundreds of browser attributes to distinguish automated traffic from real users.</p>
+          <div class="doc-section"><h3>🤖 Bot categories</h3><ul>
+            <li><strong>not_detected</strong> — Likely a human using a regular browser.</li>
+            <li><strong>good</strong> — Known bots: search crawlers, monitoring tools.</li>
+            <li><strong>bad</strong> — Automation tools like Selenium, Puppeteer, or Playwright.</li>
+          </ul></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/bot-detection/overview" target="_blank">Read Bot Detection docs ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-install"><div class="doc-card">
+          <p class="doc-eyebrow">Getting started</p><h2 class="doc-title">Quick install</h2>
+          <div class="doc-section"><h3>Load via CDN</h3>
+          <div class="code-block">import FP from 'https://fpjscdn.net/v3/YOUR_PUBLIC_KEY'
+const fp = await FP.load()
+const result = await fp.get()
+console.log(result.visitorId)
+console.log(result.requestId)</div></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/install-the-javascript-agent" target="_blank">Full install guide ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-webhooks"><div class="doc-card">
+          <p class="doc-eyebrow">Integration</p><h2 class="doc-title">Webhooks</h2>
+          <p class="doc-intro">Fingerprint pushes identification events to your server asynchronously.</p>
+          <div class="doc-section"><h3>🔐 Verifying the signature</h3>
+          <div class="code-block">const sig = req.headers['fpjs-event-signature'];
+const [, hash] = sig.split('=');
+const expected = crypto.createHmac('sha256', SECRET)
+  .update(req.rawBody).digest('hex');
+if (hash !== expected) return res.status(401).send();</div></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/webhooks" target="_blank">Read Webhooks docs ↗</a>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CERTIFY TAB -->
+  <div class="tab-panel" id="panel-certify">
+    <div class="cert-wrap">
+
+      <!-- Cert-specific stats bar -->
+      <div class="stats-bar" style="margin-bottom:0" id="cert-stats-bar">
+        <div class="stat-card">
+          <span class="stat-label">Attempts used</span>
+          <span class="stat-value" id="cert-stat-attempts">–</span>
+          <span class="stat-sub">of 1 free attempt</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Status</span>
+          <span class="stat-value" id="cert-stat-status" style="font-size:18px">–</span>
+          <span class="stat-sub" id="cert-stat-sub">not attempted</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Score</span>
+          <span class="stat-value" id="cert-stat-score">–</span>
+          <span class="stat-sub">pass mark: 4 / 5</span>
+        </div>
+        <div class="fp-stat-card">
+          <div class="fp-stat-label"><span class="fp-live-dot"></span>Visitor ID (per-device)</div>
+          <div class="visitor-id-large" id="cert-vid-large">–</div>
+          <div class="sig-chips" id="cert-fp-chips"></div>
+        </div>
+      </div>
+
+      <div class="cert-header">
+        <h2>🏆 Get Certified</h2>
+        <p>Answer 5 multiple-choice questions about Fingerprint. Score 4 or more to earn your certificate. Each device gets one free attempt.</p>
+        <div class="cert-rule"><span class="dot"></span>Certification status is tracked per <strong style="margin:0 4px">Visitor ID</strong> — creating a new account won't reset your attempt.</div>
+      </div>
+
+      <!-- Already certified banner -->
+      <div id="cert-already-banner" style="display:none" class="cert-already">
+        <h3>✅ Already certified!</h3>
+        <p id="cert-already-score"></p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn-primary" style="max-width:220px" onclick="openCertificate()">View certificate</button>
+          <button onclick="openAnswersModal()" style="padding:12px 20px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--text);cursor:pointer">View answers</button>
+        </div>
+      </div>
+
+      <!-- No attempts banner -->
+      <div id="cert-no-attempts-banner" style="display:none" class="cert-already" style="border-color:rgba(239,68,68,.25)">
+        <h3 style="color:var(--red)">No attempts remaining</h3>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:16px">This device has used its free attempt. Upgrade to premium for more attempts and resources.</p>
+        <button class="btn-primary" style="max-width:240px;margin:0 auto" onclick="openPaywall()">View premium plan</button>
+      </div>
+
+      <!-- Start screen -->
+      <div class="quiz-start" id="quiz-start-screen">
+        <h3>Ready to take the test?</h3>
+        <p>You'll have 5 minutes to answer 5 multiple-choice questions. You can navigate between questions freely. Your answers are saved as you go.</p>
+        <div class="quiz-rules">
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">⏱️</span>5-minute countdown timer — submit before it runs out</div>
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">✅</span>Score 4 out of 5 to earn your certificate</div>
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">🔒</span>One attempt per device — this cannot be reset</div>
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">🛡️</span>Device verification required on submission</div>
+        </div>
+        <button class="btn-start-quiz" onclick="startQuiz()">Start the test →</button>
+      </div>
+
+      <!-- Active quiz chrome (hidden until started) -->
+      <div class="quiz-chrome" id="quiz-chrome">
+        <!-- Top bar: progress + timer + dots -->
+        <div class="quiz-topbar">
+          <div class="quiz-progress-label">Question <strong id="q-current-num">1</strong> of 5</div>
+          <div class="quiz-progress-dots" id="q-dots"></div>
+          <div class="quiz-timer" id="quiz-timer">⏱ 5:00</div>
+        </div>
+
+        <!-- Single question display -->
+        <div id="active-question-card"></div>
+
+        <!-- Navigation -->
+        <div class="quiz-nav">
+          <button class="btn-nav" id="btn-prev" onclick="quizNav(-1)">← Previous</button>
+          <span style="font-size:13px;color:var(--muted)" id="quiz-answered-count">0 / 5 answered</span>
+          <div style="display:flex;gap:10px">
+            <button class="btn-nav" id="btn-next" onclick="quizNav(1)">Next →</button>
+            <button class="btn-submit-cert" id="cert-submit-btn" onclick="submitCert()">Submit test</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REVIEW TAB -->
+  <div class="tab-panel" id="panel-review">
+
+    <!-- Already submitted banner -->
+    <div id="review-done-banner" style="display:none;background:var(--card);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:36px;text-align:center">
+      <div style="font-size:44px;margin-bottom:14px">🎁</div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:10px;color:var(--green)">Review submitted!</h2>
+      <p style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:10px">
+        A $20 gift card is on its way to <strong id="review-done-email" style="color:var(--text)"></strong>.
+      </p>
+      <p style="font-size:13px;color:var(--muted)">Submitted at: <span id="review-done-time"></span></p>
+    </div>
+
+    <!-- Review form -->
+    <div id="review-form-wrap" style="width:100%">
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;margin-bottom:16px">
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:8px">⭐ Leave a Review</h2>
+        <p style="font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:0">
+          Share your experience with Fingerprint University. Each device can submit one review — we'll send a <strong style="color:var(--text)">$20 gift card</strong> to the email address you provide.
+        </p>
+        <div style="margin-top:14px;padding:10px 14px;background:var(--surface);border-radius:8px;border:1px solid var(--border2);font-size:13px;color:var(--muted);display:flex;align-items:flex-start;gap:8px">
+          <span style="color:var(--accent);flex-shrink:0">🛡️</span>
+          <span>One gift card per device — Fingerprint's Visitor ID ensures this cannot be circumvented by creating multiple accounts or using incognito mode.</span>
+        </div>
+      </div>
+
+      <!-- Form card -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px">
+
+        <!-- Star rating -->
+        <div style="margin-bottom:20px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Rating</label>
+          <div style="display:flex;gap:8px" id="star-row">
+            <span class="star-btn" onclick="setRating(1)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="1 star">☆</span>
+            <span class="star-btn" onclick="setRating(2)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="2 stars">☆</span>
+            <span class="star-btn" onclick="setRating(3)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="3 stars">☆</span>
+            <span class="star-btn" onclick="setRating(4)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="4 stars">☆</span>
+            <span class="star-btn" onclick="setRating(5)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="5 stars">☆</span>
+          </div>
+        </div>
+
+        <!-- Email (required) -->
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Email address <span style="color:var(--red)">*</span></label>
+          <input type="email" id="review-email" placeholder="you@example.com"
+            style="width:100%;padding:11px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"/>
+        </div>
+
+        <!-- Subject -->
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Subject</label>
+          <input type="text" id="review-subject" placeholder="What did you enjoy most?"
+            style="width:100%;padding:11px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"/>
+        </div>
+
+        <!-- Review body -->
+        <div style="margin-bottom:24px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Your review</label>
+          <textarea id="review-body" placeholder="Tell us about your experience with the course material, the certification process, or anything else…"
+            style="width:100%;padding:11px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;resize:vertical;min-height:120px;transition:border-color .15s;line-height:1.6"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+        </div>
+
+        <!-- Error -->
+        <div id="review-error" style="display:none;font-size:13px;color:var(--red);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px"></div>
+
+        <div style="display:flex;justify-content:center;margin-bottom:12px">
+          <button onclick="submitReview()"
+            style="padding:13px 40px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s"
+            id="review-submit-btn">
+            Submit review &amp; claim $20 gift card
+          </button>
+        </div>
+
+        <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">
+          By submitting, you confirm this is your own genuine review. One submission per device is enforced by Fingerprint.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SWAG TAB -->
+  <div class="tab-panel" id="panel-swag">
+    <div class="coming-soon-panel">
+      <div class="cs-icon">👕</div>
+      <h2 class="cs-title">Swag Store</h2>
+      <p class="cs-desc">Redeem your learning credits for Fingerprint-branded swag.</p>
+      <span class="cs-badge">Coming soon</span>
+    </div>
+  </div>
+</main>
+
+<!-- VIDEO PLAYER MODAL -->
+<div class="modal-backdrop" id="video-modal">
+  <div class="modal-box" style="max-width:820px">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Video</span>
+      <button class="modal-close-btn" onclick="closeVideoModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <iframe id="modal-iframe" src="" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- PAYWALL MODAL -->
+<div class="modal-backdrop" id="paywall-modal">
+  <div class="modal-box" style="max-width:460px;padding:40px 36px;text-align:center">
+    <button class="modal-close-btn" onclick="closePaywall()">✕</button>
+    <div class="paywall-icon">🎓</div>
+    <h2 class="paywall-title">You've watched 3 videos</h2>
+    <p class="paywall-body">You've used your <strong>3 free videos</strong> on this device. Upgrade to premium to unlock unlimited access.</p>
+    <div class="paywall-benefits">
+      <div class="benefit-row"><span class="check">✓</span><span>Unlimited video access</span></div>
+      <div class="benefit-row"><span class="check">✓</span><span>Priority support</span></div>
+      <div class="benefit-row"><span class="check">✓</span><span>Downloadable course materials</span></div>
+      <div class="benefit-row"><span class="check">✓</span><span>Unlimited certification attempts</span></div>
+    </div>
+    <a class="paywall-cta" href="https://fingerprint.com/pricing/" target="_blank">Explore premium plan</a>
+    <button class="paywall-dismiss" onclick="closePaywall()">Maybe later</button>
+  </div>
+</div>
+
+<!-- CERT RESULT MODAL -->
+<div class="modal-backdrop" id="cert-result-modal">
+  <div class="modal-box" style="max-width:480px;padding:40px 36px;text-align:center">
+    <button class="modal-close-btn" onclick="closeCertResult()">✕</button>
+    <div class="cert-result-icon" id="cr-icon"></div>
+    <h2 class="cert-result-title" id="cr-title"></h2>
+    <p class="cert-result-body" id="cr-body"></p>
+    <button class="btn-primary" id="cr-primary-btn"></button>
+    <button class="btn-secondary" onclick="closeCertResult()">Close</button>
+  </div>
+</div>
+
+<!-- SUSPECT STEP-UP MODAL — friction only, user can proceed -->
+<div class="modal-backdrop" id="suspect-modal">
+  <div class="modal-box" style="max-width:460px;padding:40px 36px;text-align:center">
+    <div class="suspect-icon">🔍</div>
+    <h2 class="suspect-title">Unusual activity detected</h2>
+    <p class="suspect-body">We've noticed some unusual signals from your device during <span id="suspect-modal-context">this action</span>. You can still proceed, but please be aware your submission may be flagged for review.</p>
+    <div class="suspect-score-badge" id="suspect-score-badge">Suspect score: –</div>
+    <div class="suspect-signals" id="suspect-signals-list"></div>
+    <button class="btn-primary" onclick="closeSuspectAndProceed()">Proceed anyway</button>
+    <button class="btn-secondary" onclick="closeSuspectAndDismiss()">Dismiss</button>
+  </div>
+</div>
+
+<!-- REPORT CARD MODAL -->
+<div class="modal-backdrop" id="report-modal">
+  <div class="modal-box" style="max-width:520px;padding:32px 36px">
+    <button class="modal-close-btn" onclick="document.getElementById('report-modal').classList.remove('open')">✕</button>
+    <h2 class="report-title">Device Report Card</h2>
+    <div class="report-vid" id="report-vid">–</div>
+    <div class="report-grid" id="report-grid"></div>
+    <div class="report-sig-row" id="report-sig-row"></div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS MODAL -->
+<div class="modal-backdrop" id="how-modal">
+  <div class="modal-box" style="max-width:580px;padding:32px 36px;max-height:85vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('how-modal').classList.remove('open')">✕</button>
+    <h2 class="how-title">How does this PoC work?</h2>
+    <div class="how-step"><div class="how-step-num">1</div><div class="how-step-text"><strong>Sign In click → Fingerprint JS agent runs</strong><span>The agent collects 300+ browser signals and calls the Fingerprint API, returning a visitorId and requestId. This fires on button click — not page load — so incognito mode and VPN state at authentication time are captured.</span></div></div>
+    <div class="how-step"><div class="how-step-num">2</div><div class="how-step-text"><strong>Visitor ID registered server-side</strong><span>The visitorId and signals are sent to POST /api/fp/identify. The server keys all counters to the visitorId, not the email address.</span></div></div>
+    <div class="how-step"><div class="how-step-num">3</div><div class="how-step-text"><strong>Cached in sessionStorage — no repeated API calls</strong><span>The full FP result is stored in sessionStorage after identification. The videos page reads from cache, so no second Fingerprint API call is made.</span></div></div>
+    <div class="how-step"><div class="how-step-num">4</div><div class="how-step-text"><strong>Video count tied to visitorId, not email</strong><span>Log out, switch accounts, use incognito — the server tracks views by visitorId. A different email on the same device hits the same counter.</span></div></div>
+    <div class="how-step"><div class="how-step-num">5</div><div class="how-step-text"><strong>Suspect score checked on tab switch + cert submit</strong><span>The cached suspect score is evaluated each time you switch tabs or submit the certification test. If it exceeds the threshold (12), a step-up verification modal appears.</span></div></div>
+    <div class="how-step"><div class="how-step-num">6</div><div class="how-step-text"><strong>Certification attempt tracked per device</strong><span>One free attempt per visitorId. Creating a new account doesn't reset it.</span></div></div>
+    <div class="how-step"><div class="how-step-num">7</div><div class="how-step-text"><strong>Smart Signals via Server API</strong><span>The ⚡ Smart signals footer link calls GET /api/smart-signals on the backend, which calls GET /events/:requestId on the Fingerprint Server API using your secret FP_API_KEY. Results are never exposed client-side.</span></div></div>
+    <div class="how-note"><strong>Note on Suspect Score:</strong> The full Suspect Score is only available via the Fingerprint Server API. In this demo it is computed client-side from available signals to simulate the behaviour. In production, fetch it from <code>GET /v4/events/:requestId</code> on your backend.</div>
+  </div>
+</div>
+
+<!-- VERIFY CANDIDATURE MODAL (blocks submission until code entered) -->
+<div class="modal-backdrop" id="verify-modal" style="z-index:150">
+  <div class="modal-box" style="max-width:460px;padding:40px 36px;text-align:center">
+    <div class="verify-icon">🔐</div>
+    <h2 class="verify-title">Verify your candidature</h2>
+    <p class="verify-body">We've detected unusual activity from your device. Before you submit the test, please enter the confirmation code sent to your email.</p>
+    <button class="btn-send-code" onclick="sendVerifyCode()">Send verification code to my email</button>
+    <input class="verify-code-input" id="verify-code-input" type="text" maxlength="4" placeholder="——" autocomplete="off"/>
+    <div class="verify-error" id="verify-error"></div>
+    <button class="btn-verify-code" id="btn-verify-code" onclick="checkVerifyCode()">Verify candidature</button>
+  </div>
+</div>
+
+<!-- ANSWERS MODAL -->
+<div class="modal-backdrop" id="answers-modal">
+  <div class="modal-box" style="max-width:600px;padding:32px 36px;max-height:85vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('answers-modal').classList.remove('open')">✕</button>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:4px">Correct answers</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Review the answers to all 5 certification questions</p>
+    <div id="answers-list"></div>
+  </div>
+</div>
+
+<!-- SMART SIGNALS MODAL -->
+<div class="modal-backdrop" id="signals-modal">
+  <div class="modal-box" style="max-width:640px;padding:32px 36px;max-height:88vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('signals-modal').classList.remove('open')">✕</button>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:4px">Smart Signals</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:6px">Live data from the Fingerprint Server API — <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">GET /events/:requestId</code></p>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:20px;word-break:break-all" id="ss-request-id"></div>
+    <div id="ss-loading" style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:28px;margin-bottom:12px">⚡</div>Calling Fingerprint Server API…</div>
+    <div id="ss-error" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:14px 18px;font-size:13px;color:var(--red)"></div>
+    <div id="ss-content" style="display:none"></div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://fingerprint.com" target="_blank">fingerprint.com</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com" target="_blank">Documentation</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com/docs/use-case-tutorials-overview" target="_blank">Use cases</a>
+  <span class="sep">|</span>
+  <button class="footer-link" onclick="openReportCard()">📊 Device report card</button>
+  <span class="sep">|</span>
+  <button class="footer-link" onclick="document.getElementById('how-modal').classList.add('open')">❓ How does this PoC work?</button>
+  <span class="sep">|</span>
+  <button class="footer-link" onclick="openSmartSignals()">⚡ Smart signals</button>
+  <span class="sep">|</span>
+  <button class="footer-link" onclick="openFpLog()">📋 FPJS log</button>
+  <span class="sep">|</span>
+  <a href="/admin" class="footer-link">🛡️ Admin center</a>
+</footer>
+
+<script>
+// Public key injected by server at request time (same mechanism as login.html)
+const FP_PUBLIC_KEY = '__FP_PUBLIC_KEY__';
+
+// ── Toast notifications ───────────────────────────────────────────────────────
+function showToast(title, message, type = 'warn', duration = 5000) {
+  const icon = type === 'warn' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️';
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<div class="toast-icon">${icon}</div>
+    <div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${message}</div></div>`;
+  document.getElementById('toast-container').appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toast-out .3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+// Token is stored in localStorage (cross-tab sharing) with a 4-hour TTL.
+// sessionStorage holds a plain copy per-tab for fast access.
+// authFetch automatically includes X-Session-Token and handles displacement/expiry.
+
+function getSessionToken() {
+  // Fast path: sessionStorage (per-tab)
+  const fast = sessionStorage.getItem('fp_session_token');
+  if (fast) return fast;
+  // Fallback: localStorage with TTL check (cross-tab)
+  try {
+    const raw = localStorage.getItem('fp_session');
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.expiresAt && Date.now() > data.expiresAt) {
+      localStorage.removeItem('fp_session');
+      return null;
+    }
+    // Mirror to sessionStorage for this tab
+    sessionStorage.setItem('fp_session_token', data.token);
+    return data.token;
+  } catch(e) { return null; }
+}
+
+async function authFetch(url, opts = {}) {
+  const token = getSessionToken();
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['X-Session-Token'] = token;
+
+  const res = await fetch(url, { ...opts, headers });
+
+  if (res.status === 401) {
+    const body = await res.json().catch(() => ({}));
+    if (body.reason === 'session_displaced' || body.reason === 'session_expired') {
+      showDisplacedScreen(body.error, body.reason);
+      throw new Error(body.reason);
+    }
+  }
+  return res;
+}
+
+async function doLogout() {
+  try {
+    await fetch('/api/logout', { method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'X-Session-Token': getSessionToken() || '' } });
+  } catch(e) { /* best-effort */ }
+  localStorage.removeItem('fp_session');
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+
+function showDisplacedScreen(message, reason) {
+  const isExpired = reason === 'session_expired';
+  document.body.innerHTML = `
+    <div style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;z-index:9999;font-family:'Inter',sans-serif">
+      <div style="font-size:56px;margin-bottom:20px">${isExpired ? '⏰' : '🔒'}</div>
+      <h1 style="font-size:24px;font-weight:700;margin-bottom:12px;color:var(--text)">${isExpired ? 'Session expired' : 'Session ended'}</h1>
+      <p style="font-size:16px;color:var(--muted);line-height:1.7;max-width:440px;margin-bottom:28px">${message || 'Your session has ended. Please sign in again.'}</p>
+      <button onclick="doLogout()" style="padding:13px 36px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Return to sign in</button>
+    </div>`;
+}
+
+// ── Heartbeat — ping server every 60s to keep session alive ──────────────────
+// Server checks session_last_seen_at; no ping for 5min = session stale.
+function startHeartbeat() {
+  async function ping() {
+    try { await authFetch('/api/session/heartbeat', { method: 'POST' }); }
+    catch(e) { if (e.message !== 'session_displaced' && e.message !== 'session_expired') console.warn('[heartbeat]', e.message); }
+  }
+  ping(); // immediate first ping
+  setInterval(ping, 60 * 1000); // then every 60s
+
+  // Also ping on tab focus (catches tabs that were in the background)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') ping();
+  });
+}
+
+// ── Back/forward cache — re-check session when tab is restored ────────────────
+window.addEventListener('pageshow', async (e) => {
+  if (e.persisted) {
+    // Page restored from back/forward cache — verify session is still valid
+    try { await authFetch('/api/me'); }
+    catch(e) { /* authFetch handles session_displaced */ }
+  }
+});
+
+// Shared FP agent instance — v4, loaded once, reused for all fresh identification calls
+let fpAgent = null;
+async function getFpAgent() {
+  if (fpAgent) return fpAgent;
+  const mod = await import(`https://fpjscdn.net/v4/${FP_PUBLIC_KEY}`);
+  fpAgent = mod.start({ apiKey: FP_PUBLIC_KEY }); // v4: start() is synchronous
+  return fpAgent;
+}
+
+// Run a fresh v4 identification — returns sealed result for server-side unseal
+async function freshIdentify() {
+  const agent       = await getFpAgent();
+  const fingerprint = await agent.get();
+
+  // Capture sealed result (requires sealed key active in Dashboard)
+  let sealedResult = null;
+  if (fingerprint.sealed_result && typeof fingerprint.sealed_result.base64 === 'function') {
+    sealedResult = fingerprint.sealed_result.base64();
+  }
+
+  return {
+    eventId:      fingerprint.event_id  || '',
+    requestId:    fingerprint.event_id  || '', // compat alias
+    sealedResult,
+    // visitor_id is stripped by sealed key — will be returned by server after unseal
+    visitorId:    fingerprint.visitor_id || null,
+  };
+}
+
+const QUESTIONS = [
+  { q:"What does the Fingerprint Visitor ID persist across?", options:["Only within the same browser session","Cookie clears, incognito mode, and VPN changes","Only if the user is logged in","Only within the same IP address"], correct:1 },
+  { q:"Why are Smart Signals only available via the Server API and not the JS agent response?", options:["To prevent client-side tampering and interception","Because they are too large to send to the browser","Smart Signals are available in the JS agent response","For GDPR compliance reasons only"], correct:0 },
+  { q:"What does a 'bad' Bot Detection result indicate?", options:["A known search engine crawler","A legitimate mobile app user","An automation tool like Selenium or Puppeteer","A user behind a VPN"], correct:2 },
+  { q:"What is the Suspect Score?", options:["The confidence score of the visitor identification","A weighted sum of triggered Smart Signals indicating suspicion","The number of times a visitor ID has been seen","A score assigned by the browser's security settings"], correct:1 },
+  { q:"Which HTTP header does Fingerprint use to sign webhook payloads?", options:["X-Fingerprint-Signature","Authorization","X-Webhook-Secret","FPJS-Event-Signature"], correct:3 }
+];
+
+const VIDEOS = [
+  // Real videos from the Fingerprint YouTube channel (@fingerprintjs)
+  // Playlist: youtube.com/watch?v=zeg404AQxJo&list=PLjhozvP52rLPVXsYKtXa4CF9_r4GdaYVs
+  { id:'zeg404AQxJo', title:'Fingerprint Pro — Product Overview',                     meta:'Fingerprint · Product' },
+  { id:'jWX9P5_jZn8', title:'Prevent Multiple Signups with Browser Fingerprinting',   meta:'Fingerprint · Tutorial' },
+  { id:'rF6QOSwjPmU', title:'Browser Fingerprinting in JavaScript',                  meta:'Fingerprint · Developer tutorial' },
+  { id:'mmoW1FVnM6k', title:'FingerprintJS Open Source Library Demo',                meta:'Fingerprint · Open source demo' },
+  { id:'XuKHEC77muA', title:'Why Device Fingerprinting Matters in Fraud Prevention', meta:'Fingerprint · Shorts' },
+  { id:'Na8KBJHbTnY', title:'Bot Detection & Smart Signals Deep Dive',               meta:'Fingerprint · Technical' },
+];
+
+let watchedIds = new Set();
+let state = { watched:0, limit:3, remaining:3, certified:false, certAttempts:0, certScore:null };
+let fpCache = null;
+let currentUser = { email:'', name:'' };
+// ─────────────────────────────────────────────────────────────────────────────
+// VALIDATION RULES — edit these values to tune fraud detection behaviour
+// ─────────────────────────────────────────────────────────────────────────────
+
+const VALIDATION = {
+  // Suspect score threshold: triggers step-up verification modal.
+  // Score is a weighted sum of signals (see weights below).
+  // Raise this to be more permissive, lower it to be stricter.
+  SUSPECT_THRESHOLD: 12,
+
+  // Individual signal weights used to compute the CLIENT-SIDE suspect score.
+  // (The Server API returns an authoritative score when FP_API_KEY is set.)
+  // These are only used as a fallback if the Server API call fails.
+  SIGNAL_WEIGHTS: {
+    bot:            6,   // automated browser detected
+    vpn:            4,   // VPN usage detected
+    incognito:      3,   // private/incognito browsing mode
+    lowConfidence:  4,   // identification confidence below LOW_CONFIDENCE_CUTOFF
+  },
+
+  // Confidence below this value counts as "low confidence" for scoring
+  LOW_CONFIDENCE_CUTOFF: 0.5,
+
+  // Whether VPN alone (regardless of score) triggers verification on cert submit
+  VPN_BLOCKS_CERT_SUBMIT: true,
+
+  // Whether a timezone mismatch triggers the VPN warning modal on login
+  CHECK_TIMEZONE_MISMATCH: true,
+};
+
+// Shorthand used throughout the file — read from config above
+const SUSPECT_THRESHOLD = VALIDATION.SUSPECT_THRESHOLD;
+
+// ─────────────────────────────────────────────────────────────────────────────
+let suspectAlreadyShown = false;
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-btn').textContent=t==='dark'?'🌙':'☀️'; localStorage.setItem('fp-theme',t); }
+function toggleTheme(){ applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); }
+applyTheme(localStorage.getItem('fp-theme')||'dark');
+
+// ── Tab switching — NO API calls on tab open, cached values only ──────────────
+// API is called at submission time (cert submit, review submit) not on tab switch.
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+
+  if(name==='certify'){
+    // Use cached signals only — no freshIdentify(), no Server API call.
+    // Validation still runs against whatever is in fpCache from login or last Smart Signals call.
+    if(fpCache){
+      const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const ipTz       = fpCache._ipTimezone;
+      const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
+      const highRisk   = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
+      const vpnOn      = fpCache.vpn === true;
+      if(vpnOn || highRisk || tzMismatch){
+        const reasons = [];
+        if(vpnOn)      reasons.push('VPN usage detected');
+        if(highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
+        if(tzMismatch) reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
+        document.getElementById('suspect-score-badge').textContent=`Suspect score: ${fpCache.suspectScore||0}`;
+        document.getElementById('suspect-signals-list').innerHTML=reasons.map(r=>`<span class="sig-chip ${vpnOn||highRisk?'red':'amber'}">${r}</span>`).join('');
+        document.getElementById('suspect-modal').classList.add('open');
+      }
+    }
+    renderCertTab();
+  } else if(name==='review'){
+    switchToReviewTab();
+  } else {
+    checkSuspectScore(name);
+  }
+}
+function switchDoc(name,item){
+  document.querySelectorAll('.doc-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.docs-nav-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('doc-'+name).classList.add('active');
+  item.classList.add('active');
+}
+
+// ── Timezone helpers (offset-based comparison, handles IANA aliases) ──────────
+// Asia/Kolkata and Asia/Calcutta both resolve to +330 min → not a mismatch.
+function tzOffsetMinutes(tz) {
+  try {
+    const now   = new Date();
+    const local = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    const utc   = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+    return Math.round((local - utc) / 60000);
+  } catch(e) { return null; }
+}
+function sameUtcOffset(tz1, tz2) {
+  const o1 = tzOffsetMinutes(tz1);
+  const o2 = tzOffsetMinutes(tz2);
+  if(o1 === null || o2 === null) return false;
+  return o1 === o2;
+}
+function tzOffsetLabel(tz) {
+  const mins = tzOffsetMinutes(tz);
+  if(mins === null) return '?';
+  const sign = mins >= 0 ? '+' : '-';
+  const abs  = Math.abs(mins);
+  const h    = String(Math.floor(abs / 60)).padStart(2, '0');
+  const m    = String(abs % 60).padStart(2, '0');
+  return `${sign}${h}:${m}`;
+}
+
+// ── Suspect score ─────────────────────────────────────────────────────────────
+function computeSuspectScore(fp){
+  // Client-side fallback computation — Server API is authoritative when available.
+  // Weights are defined in the VALIDATION config block above.
+  let score = 0; if(!fp) return 0;
+  const w = VALIDATION.SIGNAL_WEIGHTS;
+  if(fp.bot)                                          score += w.bot;
+  if(fp.vpn)                                          score += w.vpn;
+  if(fp.incognito)                                    score += w.incognito;
+  if((fp.confidence ?? 1) < VALIDATION.LOW_CONFIDENCE_CUTOFF) score += w.lowConfidence;
+  return score;
+}
+async function checkSuspectScore(tab){
+  if(!fpCache) return;
+  const score=fpCache.suspectScore!==undefined?fpCache.suspectScore:computeSuspectScore(fpCache);
+  try{ await authFetch('/api/fp/suspect',{method:'POST',body:JSON.stringify({suspectScore:score,vpn:fpCache.vpn||false,highActivity:fpCache.highActivity||false,tab})}); }catch(e){}
+  if(score>=SUSPECT_THRESHOLD&&!suspectAlreadyShown){ suspectAlreadyShown=true; showSuspectModal(score); }
+}
+function showSuspectModal(score){
+  document.getElementById('suspect-score-badge').textContent=`Suspect score: ${score} (threshold: ${SUSPECT_THRESHOLD})`;
+  const sigs=[];
+  if(fpCache?.bot) sigs.push({label:'Bot detected',cls:'red'});
+  if(fpCache?.vpn) sigs.push({label:'VPN active',cls:'amber'});
+  if(fpCache?.incognito) sigs.push({label:'Incognito mode',cls:'amber'});
+  if(fpCache?.confidence<0.5) sigs.push({label:'Low confidence',cls:'amber'});
+  document.getElementById('suspect-signals-list').innerHTML=sigs.map(s=>`<span class="sig-chip ${s.cls}">${s.label}</span>`).join('');
+  document.getElementById('suspect-modal').classList.add('open');
+}
+function closeSuspectModal(){ document.getElementById('suspect-modal').classList.remove('open'); }
+function closeSuspectAndProceed(){
+  closeSuspectModal();
+  if(window._suspectModalResolve){ window._suspectModalResolve(true); window._suspectModalResolve = null; }
+}
+function closeSuspectAndDismiss(){
+  closeSuspectModal();
+  if(window._suspectModalResolve){ window._suspectModalResolve(false); window._suspectModalResolve = null; }
+}
+function sendVerificationCode(){
+  alert(`A verification code has been sent to ${currentUser.email}.\n\n(Demo only — no email sent)`);
+}
+
+// ── Load state ────────────────────────────────────────────────────────────────
+async function loadMe(){
+  const data=await authFetch('/api/me').then(r=>r.json());
+  if(!data.ok){ window.location.href='/'; return; }
+  currentUser={email:data.email,name:data.name};
+  document.getElementById('user-name').textContent=data.name;
+  watchedIds=new Set(data.watchedIds||[]);
+  state={watched:data.videosWatched,limit:data.freeLimit,remaining:data.remaining,certified:data.certified,certAttempts:data.certAttempts,certScore:data.certScore,certSubmittedAt:data.certSubmittedAt||null};
+  const cached=sessionStorage.getItem('fp_result');
+  if(cached){
+    fpCache=JSON.parse(cached);
+  } else {
+    // No sessionStorage cache — seed fpCache from server's cached signals
+    fpCache = {};
+  }
+  // Always merge cachedSignals from server into fpCache.
+  // This ensures correct signals are shown even when sessionStorage has stale client-side
+  // guesses (e.g. incognito=false from v4 agent before sealed result was decrypted).
+  if (data.cachedSignals) {
+    const cs = data.cachedSignals;
+    // Always overwrite these with server-authoritative values
+    fpCache.visitorId    = cs.visitorId    || data.visitorId || fpCache.visitorId || null;
+    fpCache.confidence   = cs.confidence   ?? fpCache.confidence   ?? 0;
+    fpCache.incognito    = cs.incognito    ?? fpCache.incognito    ?? false;
+    fpCache.vpn          = cs.vpn          ?? fpCache.vpn          ?? false;
+    // bot stored as "notDetected"/"bad" string in DB; convert to boolean for client
+    fpCache.bot          = cs.bot === 'bad' ? true : (cs.bot != null ? false : fpCache.bot ?? false);
+    fpCache.suspectScore = cs.suspectScore ?? fpCache.suspectScore ?? 0;
+    // Only fill in IP fields if missing
+    if (!fpCache._ipTimezone)  fpCache._ipTimezone  = cs._ipTimezone  || null;
+    if (!fpCache._ipCountry)   fpCache._ipCountry   = cs._ipCountry   || null;
+    if (!fpCache._ipCity)      fpCache._ipCity      = cs._ipCity      || null;
+    if (!fpCache._ipAddress)   fpCache._ipAddress   = cs._ipAddress   || null;
+    if (!fpCache._lastServerApiCallAt) fpCache._lastServerApiCallAt = cs._lastServerApiCallAt || null;
+    sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+  }
+  if (fpCache.visitorId) {
+    updateHeaderChips();
+    await checkSuspectScore('videos');
+  } else {
+    document.getElementById('fp-vid-large').textContent = 'not cached — log in again';
+  }
+  updateStats(); updateCertStats(); renderGrid();
+  if(state.remaining===0) setTimeout(openPaywall,800);
+  startHeartbeat();
+}
+
+// ── Update the visitor ID card chips from current fpCache ─────────────────────
+function updateHeaderChips(){
+  if(!fpCache) return;
+  const conf = fpCache.confidence ?? 0;
+  const chipsHtml = `
+    <span class="sig-chip ${conf>0.7?'green':'amber'}">conf: ${(conf*100).toFixed(0)}%</span>
+    <span class="sig-chip ${fpCache.incognito?'amber':'green'}">incognito: ${fpCache.incognito?'yes':'no'}</span>
+    <span class="sig-chip ${fpCache.bot?'red':'green'}">bot: ${fpCache.bot?'detected':'none'}</span>
+    <span class="sig-chip ${fpCache.vpn?'amber':'green'}">vpn: ${fpCache.vpn?'yes':'no'}</span>
+    <span class="sig-chip ${(fpCache.suspectScore||0)>=SUSPECT_THRESHOLD?'red':'green'}">suspect: ${fpCache.suspectScore||0}</span>
+  `;
+  // Video tab panel
+  const vidEl = document.getElementById('fp-vid-large');
+  const chipsEl = document.getElementById('fp-chips');
+  if(vidEl)   vidEl.textContent   = fpCache.visitorId || '–';
+  if(chipsEl) chipsEl.innerHTML   = chipsHtml;
+  // Cert tab panel (same data, different DOM elements)
+  const certVidEl   = document.getElementById('cert-vid-large');
+  const certChipsEl = document.getElementById('cert-fp-chips');
+  if(certVidEl)   certVidEl.textContent = fpCache.visitorId || '–';
+  if(certChipsEl) certChipsEl.innerHTML = chipsHtml;
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  const {watched,limit,remaining}=state;
+  const wEl=document.getElementById('watched-val'); wEl.textContent=watched; wEl.className='stat-value '+(watched>=limit?'red':watched===limit-1?'amber':'green');
+  const rEl=document.getElementById('remaining-val'); rEl.textContent=remaining; rEl.className='stat-value '+(remaining===0?'red':remaining===1?'amber':'green');
+  document.getElementById('dots-sub').textContent=`${watched} / ${limit} used`;
+  for(let i=1;i<=limit;i++){ const d=document.getElementById('dot-'+i); if(!d) continue; d.classList.remove('watched','last'); if(i<=watched) d.classList.add(i===watched&&remaining===0?'last':'watched'); }
+  document.getElementById('upgrade-nudge').classList.toggle('show',remaining===0);
+}
+
+// ── Video grid ────────────────────────────────────────────────────────────────
+function renderGrid(){
+  const grid=document.getElementById('video-grid');
+  grid.innerHTML=VIDEOS.map(v=>{
+    const isWatched=watchedIds.has(v.id),isLocked=state.remaining===0&&!isWatched;
+    const thumb=`https://img.youtube.com/vi/${v.id}/mqdefault.jpg`;
+    return `<div class="video-card${isLocked?' locked':''}">
+      <div class="thumb-wrap" onclick="${isLocked?'openPaywall()':
+        `playVideo('${v.id}','${v.title.replace(/'/g,"\\'")}')` }">
+        <img src="${thumb}" alt="${v.title}" loading="lazy"/>
+        ${isLocked
+          ?`<div class="lock-overlay"><span style="font-size:28px">🔒</span><span class="lock-text">Subscribe to unlock</span></div>`
+          :`<div class="play-overlay">${isWatched?'<span class="rewatch-badge">↩ Rewatch</span>':''}
+             <div class="play-circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
+           </div>`}
+      </div>
+      <div class="video-info">
+        <div class="video-title">${v.title}</div>
+        <div class="video-meta">${v.meta}</div>
+        ${isWatched?'<div class="watched-tag">✓ Watched — click to rewatch</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function playVideo(videoId,title){
+  const res=await authFetch('/api/video/watch',{method:'POST',body:JSON.stringify({videoId})}).then(r=>r.json());
+  if(!res.ok){ state.remaining=0; state.watched=state.limit; updateStats(); renderGrid(); openPaywall(); return; }
+  watchedIds=new Set(res.watchedIds||[...watchedIds,videoId]);
+  state.watched=res.watched; state.remaining=res.remaining;
+  updateStats(); renderGrid();
+  if(res.remaining===0&&!res.rewatch) setTimeout(openPaywall,1200);
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-iframe').src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+  document.getElementById('video-modal').classList.add('open');
+}
+function closeVideoModal(){ document.getElementById('video-modal').classList.remove('open'); document.getElementById('modal-iframe').src=''; }
+document.getElementById('video-modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeVideoModal(); });
+
+// ── Paywall ───────────────────────────────────────────────────────────────────
+function openPaywall(){ document.getElementById('paywall-modal').classList.add('open'); }
+function closePaywall(){ document.getElementById('paywall-modal').classList.remove('open'); }
+document.getElementById('paywall-modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closePaywall(); });
+
+// ── Cert tab state ────────────────────────────────────────────────────────────
+let quizAnswers   = new Array(QUESTIONS.length).fill(-1);  // -1 = unanswered
+let quizCurrent   = 0;       // index of displayed question
+let quizTimerSecs = 5 * 60;  // 5 minutes
+let quizTimerID   = null;
+let quizTimerPaused = false;
+let quizStarted   = false;
+let pendingAnswers = null;    // saved while verify modal is open
+
+// ── renderCertTab — shows correct screen based on device state ────────────────
+function renderCertTab(){
+  // Hide all sections first
+  document.getElementById('cert-already-banner').style.display    = 'none';
+  document.getElementById('cert-no-attempts-banner').style.display = 'none';
+  document.getElementById('quiz-start-screen').style.display      = 'none';
+  document.getElementById('quiz-chrome').classList.remove('active');
+
+  if(state.certified){
+    document.getElementById('cert-already-banner').style.display = 'block';
+    document.getElementById('cert-already-score').textContent =
+      `You scored ${state.certScore||'4+'}/5 on this device. Your certificate is ready.`;
+    return;
+  }
+  if(state.certAttempts >= 1){
+    document.getElementById('cert-no-attempts-banner').style.display = 'block';
+    return;
+  }
+  if(quizStarted){
+    // Quiz already in progress — restore it
+    document.getElementById('quiz-chrome').classList.add('active');
+    renderActiveQuestion();
+  } else {
+    document.getElementById('quiz-start-screen').style.display = 'block';
+  }
+}
+
+// ── Start the quiz ────────────────────────────────────────────────────────────
+function startQuiz(){
+  quizStarted   = true;
+  quizAnswers   = new Array(QUESTIONS.length).fill(-1);
+  quizCurrent   = 0;
+  quizTimerSecs = 5 * 60;
+  quizTimerPaused = false;
+
+  document.getElementById('quiz-start-screen').style.display = 'none';
+  document.getElementById('quiz-chrome').classList.add('active');
+  buildProgressDots();
+  renderActiveQuestion();
+  startTimer();
+}
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+function startTimer(){
+  if(quizTimerID) clearInterval(quizTimerID);
+  quizTimerID = setInterval(() => {
+    if(quizTimerPaused) return;
+    quizTimerSecs--;
+    renderTimer();
+    if(quizTimerSecs <= 0){
+      clearInterval(quizTimerID);
+      autoSubmit();
+    }
+  }, 1000);
+}
+
+function renderTimer(){
+  const el  = document.getElementById('quiz-timer');
+  if(!el) return;
+  const m   = Math.floor(quizTimerSecs / 60);
+  const s   = quizTimerSecs % 60;
+  el.textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
+  el.className = 'quiz-timer' + (quizTimerSecs <= 60 ? ' danger' : quizTimerSecs <= 120 ? ' warn' : '');
+}
+
+function pauseTimer(){ quizTimerPaused = true; }
+function resumeTimer(){ quizTimerPaused = false; }
+
+async function autoSubmit(){
+  // Time's up — submit whatever is filled
+  await doSubmitToServer(quizAnswers);
+}
+
+// ── Progress dots ─────────────────────────────────────────────────────────────
+function buildProgressDots(){
+  const wrap = document.getElementById('q-dots');
+  wrap.innerHTML = QUESTIONS.map((_,i) =>
+    `<div class="q-dot${i===quizCurrent?' current':''}" onclick="jumpToQuestion(${i})" title="Q${i+1}"></div>`
+  ).join('');
+}
+
+function updateProgressDots(){
+  QUESTIONS.forEach((_,i) => {
+    const d = document.querySelector(`#q-dots .q-dot:nth-child(${i+1})`);
+    if(!d) return;
+    d.className = 'q-dot' +
+      (quizAnswers[i] !== -1 ? ' answered' : '') +
+      (i === quizCurrent ? ' current' : '');
+  });
+  const answered = quizAnswers.filter(a => a !== -1).length;
+  const countEl  = document.getElementById('quiz-answered-count');
+  if(countEl) countEl.textContent = `${answered} / ${QUESTIONS.length} answered`;
+  const numEl = document.getElementById('q-current-num');
+  if(numEl) numEl.textContent = quizCurrent + 1;
+}
+
+// ── Render the active question ────────────────────────────────────────────────
+function renderActiveQuestion(){
+  const q   = QUESTIONS[quizCurrent];
+  const sel = quizAnswers[quizCurrent];
+
+  document.getElementById('active-question-card').innerHTML = `
+    <div class="question-card">
+      <div class="q-num">Question ${quizCurrent+1} of ${QUESTIONS.length}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="options">
+        ${q.options.map((opt,j) => `
+          <label class="option${sel === j ? ' selected' : ''}" id="qopt-${j}" onclick="selectQuizOption(${j})">
+            <input type="radio" name="quiz-q" value="${j}" ${sel === j ? 'checked' : ''}/>
+            ${opt}
+          </label>`).join('')}
+      </div>
+    </div>`;
+
+  // Nav button states
+  const prevBtn = document.getElementById('btn-prev');
+  const nextBtn = document.getElementById('btn-next');
+  const subBtn  = document.getElementById('cert-submit-btn');
+  if(prevBtn) prevBtn.disabled = quizCurrent === 0;
+  if(nextBtn) nextBtn.style.display = quizCurrent < QUESTIONS.length - 1 ? 'block' : 'none';
+  if(subBtn)  subBtn.style.display  = quizCurrent === QUESTIONS.length - 1 ? 'block' : 'none';
+
+  updateProgressDots();
+}
+
+function selectQuizOption(optIdx){
+  quizAnswers[quizCurrent] = optIdx;
+  // Update selected styling without re-rendering the whole card
+  document.querySelectorAll('#active-question-card .option').forEach((el,i) => {
+    el.classList.toggle('selected', i === optIdx);
+  });
+  updateProgressDots();
+}
+
+function quizNav(dir){
+  const next = quizCurrent + dir;
+  if(next < 0 || next >= QUESTIONS.length) return;
+  quizCurrent = next;
+  renderActiveQuestion();
+}
+
+function jumpToQuestion(idx){
+  quizCurrent = idx;
+  renderActiveQuestion();
+}
+
+// ── Shared: run signal validations and show friction modal if triggered ───────
+// Returns a promise that resolves to true if user proceeds, false if blocked.
+// Validations add FRICTION only — user can always click "Proceed".
+async function runSignalValidations(context) {
+  if (!fpCache) return true;
+
+  const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const ipTz       = fpCache._ipTimezone;
+  const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
+  const highRisk   = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
+  const vpnOn      = fpCache.vpn === true;
+  const botOn      = fpCache.bot === true;
+
+  if (!vpnOn && !highRisk && !tzMismatch && !botOn) return true; // clean — proceed immediately
+
+  const reasons = [];
+  if (vpnOn)      reasons.push(`VPN usage detected`);
+  if (botOn)      reasons.push(`Automated browser detected`);
+  if (highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
+  if (tzMismatch) reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) doesn't match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
+
+  // Show the suspect modal with a "Proceed anyway" option
+  document.getElementById('suspect-score-badge').textContent = `Suspect score: ${fpCache.suspectScore || 0}`;
+  document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r =>
+    `<span class="sig-chip ${vpnOn||botOn||highRisk?'red':'amber'}">${r}</span>`).join('');
+
+  // Swap the modal body to friction mode (Proceed + Dismiss, no hard block)
+  document.getElementById('suspect-modal-context').textContent = context;
+  document.getElementById('suspect-modal').classList.add('open');
+
+  // Return a promise that resolves when user clicks Proceed or Dismiss
+  return new Promise(resolve => {
+    window._suspectModalResolve = resolve;
+  });
+}
+
+// ── Submit flow ───────────────────────────────────────────────────────────────
+async function submitCert(){
+  const btn = document.getElementById('cert-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Verifying device…';
+
+  // Step 1 + 2 combined: v4 fresh identify → send sealed result to server for unseal
+  let freshVisitorId = null;
+  try {
+    const fresh = await freshIdentify();
+    btn.textContent = 'Checking signals…';
+
+    if (!fresh.sealedResult) {
+      throw new Error('No sealed result from agent — check sealed key is active in Dashboard');
+    }
+
+    const sigRes = await authFetch('/api/fp/signals', {
+      method: 'POST',
+      body: JSON.stringify({
+        sealed_result_base64: fresh.sealedResult,
+        event_id: fresh.eventId,   // sent for Server API fallback if unseal fails
+        uiTrigger: 'cert-submit',
+      }),
+    }).then(r => r.json());
+
+    if (!sigRes.ok) throw new Error(sigRes.error || 'Signals fetch failed');
+
+    // Show fallback toast if sealed results failed and Server API was used instead
+    if (sigRes.fallback) {
+      showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API for signals.', 'warn');
+    }
+
+    const s = sigRes.signals;
+    freshVisitorId = s.visitorId;
+
+    // Device change check — visitorId from server unseal vs cached visitorId
+    if (fpCache && freshVisitorId && fpCache.visitorId && freshVisitorId !== fpCache.visitorId) {
+      btn.disabled = false; btn.textContent = 'Submit test';
+      alert('Device mismatch detected. Please log out and log in again.');
+      return;
+    }
+
+    // Update fpCache with server-verified sealed signals
+    if (fpCache) {
+      fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
+      fpCache.vpn          = s.vpn           === true;
+      fpCache.incognito    = s.incognito     === true;
+      fpCache.bot          = s.bot           === 'bad';
+      fpCache.confidence   = s.confidence    ?? fpCache.confidence;
+      fpCache._ipTimezone  = s.ipTimezone    || fpCache._ipTimezone;
+      fpCache._ipCountry   = s.ipCountry     || fpCache._ipCountry;
+      fpCache._lastServerApiCallAt = Date.now();
+      sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+      updateHeaderChips();
+    }
+  } catch(e) {
+    console.warn('[FP cert sealed signals]', e.message);
+    // Non-fatal — continue with cached signals
+  }
+
+  btn.disabled = false; btn.textContent = 'Submit test';
+
+  // Step 3: Validation check — adds friction but does NOT block
+  const canProceed = await runSignalValidations('certification submission');
+  if (!canProceed) return;
+
+  // Step 4: If suspect score is high enough, show verify-code modal (harder gate)
+  if ((fpCache?.suspectScore || 0) >= SUSPECT_THRESHOLD || (VALIDATION.VPN_BLOCKS_CERT_SUBMIT && fpCache?.vpn === true)) {
+    pauseTimer();
+    pendingAnswers = [...quizAnswers];
+    showVerifyModal();
+    return;
+  }
+
+  await doSubmitToServer(quizAnswers, freshVisitorId);
+}
+
+// ── Verification modal ────────────────────────────────────────────────────────
+// POC: correct code is 1234
+const VERIFY_CODE = '1234';
+let verifyResolveFn = null;
+
+function showVerifyModal(){
+  document.getElementById('verify-code-input').value = '';
+  document.getElementById('verify-error').textContent = '';
+  document.getElementById('verify-modal').classList.add('open');
+}
+
+function sendVerifyCode(){
+  document.getElementById('verify-error').textContent = '';
+  // POC: code is always 1234 — in production this would email the user
+  alert('Verification code sent to your email.\n\n(Demo: the code is 1234)');
+}
+
+function checkVerifyCode(){
+  const entered = document.getElementById('verify-code-input').value.trim();
+  if(entered !== VERIFY_CODE){
+    document.getElementById('verify-error').textContent = 'Incorrect code. Please try again.';
+    return;
+  }
+  // Correct — close modal, resume timer, submit
+  document.getElementById('verify-modal').classList.remove('open');
+  resumeTimer();
+  if(pendingAnswers){
+    doSubmitToServer(pendingAnswers);
+    pendingAnswers = null;
+  }
+}
+
+// ── Actually submit to server ─────────────────────────────────────────────────
+async function doSubmitToServer(answers, freshVisitorId){
+  if(quizTimerID){ clearInterval(quizTimerID); quizTimerID = null; }
+
+  const btn = document.getElementById('cert-submit-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+  const res = await authFetch('/api/cert/submit', {
+    method: 'POST',
+    body: JSON.stringify({ answers, visitorIdAtSubmission: freshVisitorId || fpCache?.visitorId })
+  }).then(r => r.json());
+
+  if(btn){ btn.disabled = false; btn.textContent = 'Submit test'; }
+
+  if(res.alreadyCertified){ renderCertTab(); return; }
+
+  state.certAttempts = (state.certAttempts || 0) + 1;
+  quizStarted = false;
+
+  if(res.passed){
+    state.certified  = true;
+    state.certScore  = res.score;
+    showCertResult(true, res.score, res.total);
+  } else {
+    showCertResult(false, res.score, res.total);
+  }
+  updateCertStats();
+  renderCertTab();
+}
+
+function showCertResult(passed,score,total){
+  document.getElementById('cr-icon').textContent=passed?'🏆':'📚';
+  document.getElementById('cr-title').textContent=passed?"Congratulations, you're certified!":'Not quite there';
+  document.getElementById('cr-body').textContent=passed
+    ?`You scored ${score}/${total}. Your Fingerprint University certificate has been generated!`
+    :`You scored ${score}/${total} — you need 4 to pass. We'd encourage you to explore our premium plan for more attempts and additional learning resources.`;
+  const btn=document.getElementById('cr-primary-btn');
+  if(passed){ btn.textContent='View my certificate'; btn.onclick=()=>{ closeCertResult(); openCertificate(); }; }
+  else { btn.textContent='View premium plan'; btn.onclick=()=>{ closeCertResult(); openPaywall(); }; }
+  document.getElementById('cert-result-modal').classList.add('open');
+}
+function closeCertResult(){ document.getElementById('cert-result-modal').classList.remove('open'); }
+
+// ── Certificate generator ─────────────────────────────────────────────────────
+function openCertificate(){
+  const name=currentUser.name||'Graduate';
+  const email=currentUser.email||'';
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const vid=fpCache?.visitorId||'—';
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Fingerprint University Certificate</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f8f5ee;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px}.cert{background:#fff;width:840px;min-height:580px;border:2px solid #d4a853;border-radius:4px;padding:60px 80px;text-align:center;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.12)}.cert::before{content:'';position:absolute;inset:12px;border:1px solid #e8d5a0;border-radius:2px;pointer-events:none}.logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px}.logo-dot{width:10px;height:10px;background:#f97316;border-radius:50%;box-shadow:0 0 8px #f97316}.logo-text{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#1a1a2e}.cert-type{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#9c8060;margin-bottom:12px}h1{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:#1a1a2e;margin-bottom:8px}.name{font-family:'Playfair Display',serif;font-size:34px;color:#c45a08;margin-bottom:6px;font-weight:700}.email{font-size:14px;color:#888;margin-bottom:32px}.course{font-size:16px;color:#333;line-height:1.6;margin-bottom:40px;max-width:480px;margin-left:auto;margin-right:auto}.footer-row{display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #e8d5a0;padding-top:24px}.footer-col{text-align:center}.footer-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#1a1a2e;font-weight:500}.footer-lbl{font-size:11px;color:#aaa;margin-top:4px}.seal{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea6b0e);display:flex;align-items:center;justify-content:center;font-size:28px}</style>
+</head><body><div class="cert">
+  <div class="logo-row"><span class="logo-dot"></span><span class="logo-text">Fingerprint University</span></div>
+  <p class="cert-type">Certificate of completion</p>
+  <h1>This certifies that</h1>
+  <p class="name">${name}</p>
+  <p class="email">${email}</p>
+  <p class="course">has successfully completed the <strong>Fingerprint Device Intelligence Fundamentals</strong> course and demonstrated proficiency in browser fingerprinting, Smart Signals, and fraud prevention techniques.</p>
+  <div class="footer-row">
+    <div class="footer-col"><div class="footer-val">${date}</div><div class="footer-lbl">Date issued</div></div>
+    <div class="seal">🎓</div>
+    <div class="footer-col"><div class="footer-val" style="font-size:9px;max-width:140px;word-break:break-all">${vid.slice(0,20)}…</div><div class="footer-lbl">Visitor ID</div></div>
+  </div>
+</div></body></html>`;
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+// ── View Answers modal ────────────────────────────────────────────────────────
+function openAnswersModal(){
+  document.getElementById('answers-list').innerHTML=QUESTIONS.map((q,i)=>`
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Question ${i+1}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px">${q.q}</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${q.options.map((opt,j)=>`
+          <div style="padding:7px 12px;border-radius:6px;font-size:13px;
+            ${j===q.correct
+              ?'background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green);font-weight:600'
+              :'background:var(--surface);border:1px solid var(--border2);color:var(--muted)'}">
+            ${j===q.correct?'✓ ':''}${opt}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  document.getElementById('answers-modal').classList.add('open');
+}
+
+// ── Smart Signals modal — always uses a FRESH identification ─────────────────
+// Point 3: fresh Server API call, updates cached suspect score if changed
+async function openSmartSignals(){
+  document.getElementById('signals-modal').classList.add('open');
+  document.getElementById('ss-loading').style.display='block';
+  document.getElementById('ss-loading').textContent='';
+  document.getElementById('ss-loading').innerHTML='<div style="font-size:28px;margin-bottom:12px">⚡</div>Getting fresh identification…';
+  document.getElementById('ss-error').style.display='none';
+  document.getElementById('ss-content').style.display='none';
+  document.getElementById('ss-request-id').textContent='';
+  try{
+    // Step 1: fresh identification to get a new requestId (event_id in v4)
+    const fresh = await freshIdentify();
+
+    // visitorId is stripped when sealed key is active — use fpCache value for comparison
+    if (fpCache && fresh.visitorId && fpCache.visitorId && fresh.visitorId !== fpCache.visitorId) {
+      console.warn('[FP] visitorId changed:', fpCache.visitorId, '→', fresh.visitorId);
+    }
+
+    document.getElementById('ss-loading').innerHTML='<div style="font-size:28px;margin-bottom:12px">⚡</div>Calling Fingerprint Server API…';
+
+    // Step 3: fetch Server API signals using fresh requestId (event_id from v4)
+    const data=await authFetch('/api/smart-signals?requestId='+fresh.requestId+'&uiTrigger=smart-signals-footer-link').then(r=>r.json());
+
+    // Step 4: update cache with ALL authoritative Server API values
+    // Smart Signals (incognito, vpn, bot, suspect score) are ONLY available
+    // server-side — the JS agent client response does not include them.
+    // So the Server API response is the single source of truth for these fields.
+    if (data.ok && fpCache) {
+      const s        = data.signals;
+      const oldScore = fpCache.suspectScore || 0;
+      const newScore = data.updatedSuspectScore;
+
+      // Overwrite every signal with the authoritative Server API value
+      fpCache.suspectScore = newScore    !== undefined ? newScore             : oldScore;
+      fpCache.vpn          = s.vpn      !== undefined ? (s.vpn === true)     : fpCache.vpn;
+      fpCache.incognito    = s.incognito !== undefined ? (s.incognito === true): fpCache.incognito;
+      fpCache.bot          = s.bot      === 'bad'     ? true
+                           : s.bot      === 'not_detected' ? false            : fpCache.bot;
+      fpCache.confidence   = s.confidence !== undefined ? s.confidence        : fpCache.confidence;
+      fpCache._ipTimezone  = s.ipInfo?.v4?.geolocation?.timezone             || null;
+
+      sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+      updateHeaderChips();   // always refresh chips after every call
+
+      if (newScore !== undefined && newScore !== oldScore) {
+        console.log(`[FP] Suspect score: ${oldScore} → ${newScore}`);
+      }
+
+      // VPN validation: if VPN detected, trigger step-up immediately
+      if (fpCache.vpn === true) {
+        const reasons    = ['VPN usage confirmed by Fingerprint Server API'];
+        const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const ipTz       = fpCache._ipTimezone;
+        if (ipTz && !sameUtcOffset(ipTz, browserTz)) {
+          reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
+        }
+        document.getElementById('suspect-score-badge').textContent = `VPN detected — suspect score: ${fpCache.suspectScore}`;
+        document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r =>
+          `<span class="sig-chip red">${r}</span>`).join('');
+        document.getElementById('suspect-modal').classList.add('open');
+      } else if ((fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD && !suspectAlreadyShown) {
+        suspectAlreadyShown = true;
+        showSuspectModal(fpCache.suspectScore);
+      }
+    }
+    document.getElementById('ss-loading').style.display='none';
+    if(!data.ok){ const e=document.getElementById('ss-error'); e.textContent=data.error; e.style.display='block'; return; }
+    document.getElementById('ss-request-id').textContent=`requestId: ${data.requestId}`;
+    // Update TTL timestamp — footer Smart Signals call counts toward the certify tab window
+    if(fpCache){ fpCache._lastServerApiCallAt = Date.now(); sessionStorage.setItem('fp_result', JSON.stringify(fpCache)); }
+    const s=data.signals;
+    const rows=[
+      {key:'visitorId',        value:s.visitorId||'—',                                            cat:'identification'},
+      {key:'confidence',       value:s.confidence!=null?(s.confidence*100).toFixed(1)+'%':'—',    cat:'identification'},
+      {key:'firstSeenAt',      value:s.firstSeenAt?new Date(s.firstSeenAt).toLocaleString():'—',  cat:'identification'},
+      {key:'lastSeenAt',       value:s.lastSeenAt?new Date(s.lastSeenAt).toLocaleString():'—',    cat:'identification'},
+      {key:'incognito',        value:String(s.incognito??'—'),    cat:'privacy',  flag:s.incognito===true},
+      {key:'bot.result',       value:String(s.bot??'—'),          cat:'bot',      flag:s.bot==='bad'},
+      {key:'bot.type',         value:String(s.botType??'—'),      cat:'bot'},
+      {key:'vpn',              value:String(s.vpn??'—'),          cat:'network',  flag:s.vpn===true},
+      {key:'vpn.originCountry',value:String(s.originCountry??'—'),cat:'network'},
+      {key:'proxy',            value:String(s.proxy??'—'),        cat:'network',  flag:s.proxy===true},
+      {key:'tor',              value:String(s.tor??'—'),          cat:'network',  flag:s.tor===true},
+      {key:'tampering',        value:String(s.tampering??'—'),    cat:'device',   flag:s.tampering===true},
+      {key:'highActivity',     value:String(s.highActivity??'—'), cat:'device',   flag:s.highActivity===true},
+      {key:'locationSpoofing', value:String(s.locationSpoofing??'—'), cat:'device', flag:s.locationSpoofing===true},
+      {key:'suspectScore',     value:String(s.suspectScore??'—'), cat:'risk',     flag:(s.suspectScore||0)>=12},
+      {key:'ipv4.address',     value:s.ipInfo?.v4?.address||'—',                    cat:'ip'},
+      {key:'ipv4.country',     value:s.ipInfo?.v4?.geolocation?.country?.name||'—', cat:'ip'},
+      {key:'ipv4.city',        value:s.ipInfo?.v4?.geolocation?.city?.name||'—',    cat:'ip'},
+      {key:'ipv4.timezone',    value:s.ipInfo?.v4?.geolocation?.timezone||'—',      cat:'ip'},
+    ];
+    const cats={identification:'Identification',privacy:'Privacy',bot:'Bot detection',network:'Network',device:'Device',risk:'Risk score',ip:'IP info'};
+    let html='';
+    for(const [cat,label] of Object.entries(cats)){
+      const catRows=rows.filter(r=>r.cat===cat); if(!catRows.length) continue;
+      html+=`<div style="margin-bottom:20px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">${label}</div>
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">
+          ${catRows.map((r,idx)=>`
+            <div style="display:flex;align-items:center;padding:9px 14px;border-bottom:${idx<catRows.length-1?'1px solid var(--border)':'none'}">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent2);min-width:180px;flex-shrink:0">${r.key}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${r.flag===true?'var(--red)':r.flag===false?'var(--green)':'var(--text)'}">
+                ${r.flag===true?'⚠ ':r.flag===false?'✓ ':''}${r.value}
+              </span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    document.getElementById('ss-content').innerHTML=html;
+    document.getElementById('ss-content').style.display='block';
+  }catch(err){
+    document.getElementById('ss-loading').style.display='none';
+    const e=document.getElementById('ss-error'); e.textContent='Failed to fetch: '+err.message; e.style.display='block';
+  }
+}
+
+// ── Report card ───────────────────────────────────────────────────────────────
+async function openReportCard(){
+  const data=await authFetch('/api/report').then(r=>r.json());
+  if(!data.ok){ alert('Please log in first.'); return; }
+  document.getElementById('report-vid').textContent=`Visitor ID: ${data.visitorId}`;
+  document.getElementById('report-grid').innerHTML=`
+    <div class="report-stat"><div class="report-stat-label">Videos watched</div><div class="report-stat-value" style="color:var(--accent)">${data.videosWatched} / 3</div></div>
+    <div class="report-stat"><div class="report-stat-label">Cert attempts</div><div class="report-stat-value" style="color:${data.certAttempts>0?'var(--amber)':'var(--text)'}">${data.certAttempts}</div></div>
+    <div class="report-stat"><div class="report-stat-label">Certified</div><div class="report-stat-value" style="color:${data.certified?'var(--green)':'var(--muted)'}">${data.certified?'Yes':'No'}</div></div>
+    <div class="report-stat"><div class="report-stat-label">Cert score</div><div class="report-stat-value">${data.certScore!==null?data.certScore+'/5':'–'}</div></div>
+    <div class="report-stat"><div class="report-stat-label">Suspect score</div><div class="report-stat-value" style="color:${data.suspectScore>=SUSPECT_THRESHOLD?'var(--red)':'var(--green)'}">${data.suspectScore}</div></div>
+    <div class="report-stat"><div class="report-stat-label">VPN detected</div><div class="report-stat-value" style="color:${data.vpn?'var(--amber)':'var(--green)'}">${data.vpn?'Yes':'No'}</div></div>`;
+  document.getElementById('report-sig-row').innerHTML=[
+    data.vpn?'<span class="sig-chip amber">vpn active</span>':'',
+    data.highActivity?'<span class="sig-chip amber">high activity</span>':'',
+    data.suspectScore>=SUSPECT_THRESHOLD?`<span class="sig-chip red">suspect score: ${data.suspectScore}</span>`:'',
+    data.certified?'<span class="sig-chip green">certified</span>':'',
+  ].join('');
+  document.getElementById('report-modal').classList.add('open');
+}
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+// logout() — called from the header button, delegates to doLogout()
+async function logout(){ await doLogout(); }
+
+// ── Cert stats bar update ─────────────────────────────────────────────────────
+function updateCertStats(){
+  const attEl  = document.getElementById('cert-stat-attempts');
+  const statEl = document.getElementById('cert-stat-status');
+  const subEl  = document.getElementById('cert-stat-sub');
+  const scoreEl= document.getElementById('cert-stat-score');
+  if(!attEl) return;
+
+  attEl.textContent = state.certAttempts || 0;
+  attEl.className   = 'stat-value ' + (state.certAttempts >= 1 ? 'red' : 'green');
+
+  if(state.certified){
+    statEl.textContent = '✅';
+    statEl.className   = 'stat-value';
+    subEl.textContent  = 'certified';
+  } else if(state.certAttempts >= 1){
+    statEl.textContent = '❌';
+    statEl.className   = 'stat-value';
+    subEl.textContent  = 'not passed';
+  } else {
+    statEl.textContent = '–';
+    statEl.className   = 'stat-value';
+    subEl.textContent  = 'not attempted';
+  }
+
+  scoreEl.textContent = state.certScore !== null && state.certScore !== undefined
+    ? `${state.certScore} / 5`
+    : '–';
+  scoreEl.className = 'stat-value ' +
+    (state.certScore >= 4 ? 'green' : state.certScore !== null && state.certScore !== undefined ? 'red' : '');
+}
+
+// ── FPJS log modal ────────────────────────────────────────────────────────────
+async function openFpLog(){
+  document.getElementById('fplog-modal').classList.add('open');
+  document.getElementById('fplog-loading').style.display = 'block';
+  document.getElementById('fplog-table').style.display   = 'none';
+  document.getElementById('fplog-empty').style.display   = 'none';
+
+  try {
+    const data = await authFetch('/api/fp-log').then(r => r.json());
+    document.getElementById('fplog-loading').style.display = 'none';
+
+    if(!data.ok || !data.log.length){
+      document.getElementById('fplog-empty').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('fplog-body').innerHTML = data.log.map(entry => {
+      const time      = new Date(entry.ts).toLocaleTimeString();
+      const isServer  = entry.event.includes('Server API');
+      const isError   = entry.event.includes('ERROR');
+      const typeLabel = isError   ? `<span class="fplog-badge error">error</span>`
+                      : isServer  ? `<span class="fplog-badge server">server api</span>`
+                      :             `<span class="fplog-badge js">js agent</span>`;
+      const vid = entry.visitorId ? entry.visitorId.slice(0,18)+'…' : '–';
+      // Build a compact signals summary from the extra fields
+      const sigs = [];
+      if(entry.incognito !== undefined) sigs.push(`incognito:${entry.incognito?'yes':'no'}`);
+      if(entry.vpn       !== undefined) sigs.push(`vpn:${entry.vpn?'yes':'no'}`);
+      if(entry.bot       !== undefined) sigs.push(`bot:${entry.bot||'–'}`);
+      if(entry.suspectScore !== undefined) sigs.push(`suspect:${entry.suspectScore}`);
+      if(entry.error     !== undefined) sigs.push(`err:${entry.error}`);
+
+      return `<tr>
+        <td style="white-space:nowrap;color:var(--muted)">${time}</td>
+        <td class="fplog-event">${entry.event}</td>
+        <td>${typeLabel}</td>
+        <td style="color:var(--text);font-size:11px;white-space:nowrap">${entry.uiTrigger || '–'}</td>
+        <td style="color:var(--accent2)">${vid}</td>
+        <td style="color:var(--muted);font-size:10px">${sigs.join(' · ') || '–'}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('fplog-table').style.display = 'table';
+  } catch(err){
+    document.getElementById('fplog-loading').textContent = 'Failed to load: ' + err.message;
+  }
+}
+
+// ── Review tab ────────────────────────────────────────────────────────────────
+let reviewRating = 0;
+// Tracks the last time the Server API was called (ms timestamp), used for
+// the 2-minute caching rule on the review tab.
+// Shared with cert submit — certSubmittedAt from the server covers the cert case.
+
+function setRating(n) {
+  reviewRating = n;
+  document.querySelectorAll('.star-btn').forEach((el, i) => {
+    el.textContent = i < n ? '★' : '☆';
+    el.style.color = i < n ? 'var(--amber)' : 'var(--muted)';
+  });
+}
+
+async function switchToReviewTab() {
+  // No API call on tab open — use cached signals from login or last Smart Signals call.
+  // The Server API is called mandatorily at review submission (submitReview).
+  console.log('[FP] Review tab: using cached signals, API called at submission only');
+
+  // Check if this device has already submitted a review
+  try {
+    const status = await authFetch('/api/review/status').then(r => r.json());
+    if (status.submitted) {
+      showReviewDone(status.email, status.submittedAt, status.status, null);
+    }
+  } catch(e) {}
+}
+
+function showReviewDone(email, submittedAt, status, flagReason) {
+  document.getElementById('review-form-wrap').style.display   = 'none';
+  document.getElementById('review-done-banner').style.display = 'block';
+
+  const isFlagged = status === 'flagged';
+
+  document.getElementById('review-done-banner').style.borderColor =
+    isFlagged ? 'rgba(245,158,11,.3)' : 'rgba(34,197,94,.25)';
+
+  document.getElementById('review-done-banner').innerHTML = isFlagged
+    ? `<div style="font-size:44px;margin-bottom:14px">⚠️</div>
+       <h2 style="font-size:20px;font-weight:700;margin-bottom:10px;color:var(--amber)">Review received — under review</h2>
+       <p style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:10px">
+         Your review has been submitted but flagged for manual verification
+         ${flagReason ? `<strong style="color:var(--text)"> (${flagReason})</strong>` : ''}.
+         The gift card will be sent to <strong style="color:var(--text)">${email}</strong> once approved.
+       </p>
+       <p style="font-size:13px;color:var(--muted)">Submitted at: ${submittedAt ? new Date(submittedAt).toLocaleString() : '—'}</p>`
+    : `<div style="font-size:44px;margin-bottom:14px">🎁</div>
+       <h2 style="font-size:20px;font-weight:700;margin-bottom:10px;color:var(--green)">Review submitted!</h2>
+       <p style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:10px">
+         A $20 gift card is on its way to <strong style="color:var(--text)">${email}</strong>.
+       </p>
+       <p style="font-size:13px;color:var(--muted)">Submitted at: ${submittedAt ? new Date(submittedAt).toLocaleString() : '—'}</p>`;
+}
+
+async function submitReview() {
+  const email   = document.getElementById('review-email').value.trim();
+  const subject = document.getElementById('review-subject').value.trim();
+  const body    = document.getElementById('review-body').value.trim();
+  const errEl   = document.getElementById('review-error');
+  const btn     = document.getElementById('review-submit-btn');
+
+  errEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Email address is required.'; errEl.style.display = 'block'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email address (must contain @).'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verifying device…';
+
+  // Steps 1+2: v4 fresh identify → send sealed result to server
+  // Skip if cert was submitted within 2 minutes — cached signals are fresh enough
+  let freshVisitorId = null;
+  const certSubmittedMs = state.certSubmittedAt ? new Date(state.certSubmittedAt).getTime() : 0;
+  const minsAgoCert     = certSubmittedMs > 0 ? (Date.now() - certSubmittedMs) / 60000 : Infinity;
+  const skipSealed      = minsAgoCert < 2;
+
+  if (skipSealed) {
+    console.log(`[FP] Review: cert ${Math.round(minsAgoCert*60)}s ago — skipping fresh identify, using cached signals`);
+    freshVisitorId = fpCache?.visitorId || null;
+  } else {
+    try {
+      const fresh = await freshIdentify();
+      btn.textContent = 'Checking signals…';
+
+      if (!fresh.sealedResult) throw new Error('No sealed result from agent');
+
+      const sigRes = await authFetch('/api/fp/signals', {
+        method: 'POST',
+        body: JSON.stringify({
+          sealed_result_base64: fresh.sealedResult,
+          event_id: fresh.eventId,   // sent for Server API fallback if unseal fails
+          uiTrigger: 'review-submit',
+        }),
+      }).then(r => r.json());
+
+      if (!sigRes.ok) throw new Error(sigRes.error || 'Signals fetch failed');
+
+      // Show fallback toast if sealed results failed and Server API was used instead
+      if (sigRes.fallback) {
+        showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API for signals.', 'warn');
+      }
+
+      const s = sigRes.signals;
+      freshVisitorId = s.visitorId;
+
+      // Device change check
+      if (fpCache && freshVisitorId && fpCache.visitorId && freshVisitorId !== fpCache.visitorId) {
+        errEl.textContent = 'Device mismatch detected. Please log out and log in again.';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card'; return;
+      }
+
+      // Update fpCache with sealed signals
+      if (fpCache) {
+        fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
+        fpCache.vpn          = s.vpn           === true;
+        fpCache.incognito    = s.incognito     === true;
+        fpCache.bot          = s.bot           === 'bad';
+        fpCache.confidence   = s.confidence    ?? fpCache.confidence;
+        fpCache._ipTimezone  = s.ipTimezone    || fpCache._ipTimezone;
+        fpCache._ipCountry   = s.ipCountry     || fpCache._ipCountry;
+        fpCache._lastServerApiCallAt = Date.now();
+        sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+        updateHeaderChips();
+      }
+    } catch(e) {
+      console.warn('[FP review sealed signals]', e.message);
+      freshVisitorId = fpCache?.visitorId || null;
+    }
+  }
+
+  btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card';
+
+  // Step 3: Validation check — friction only
+  const canProceed = await runSignalValidations('review submission');
+  if (!canProceed) return;
+
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  try {
+    const res = await authFetch('/api/review/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        email, rating: reviewRating, subject, body,
+        visitorIdAtSubmission: freshVisitorId || fpCache?.visitorId,
+        suspectScore: fpCache?.suspectScore || 0,
+        vpn:          fpCache?.vpn || false,
+      }),
+    }).then(r => r.json());
+
+    if (!res.ok) {
+      errEl.textContent = res.error;
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card';
+      if (res.reason === 'device_already_submitted' || res.reason === 'email_already_used') {
+        showReviewDone(res.submittedEmail || email, null, null, null);
+      }
+      return;
+    }
+    showReviewDone(res.giftCardEmail || email, res.submittedAt, res.status, res.flagReason);
+  } catch(e) {
+    errEl.textContent = 'Submission failed. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card';
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadMe();
+</script>
+
+<!-- FPJS API CALL LOG MODAL -->
+<div class="modal-backdrop" id="fplog-modal">
+  <div class="modal-box" style="max-width:720px;padding:28px 32px;max-height:85vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('fplog-modal').classList.remove('open')">✕</button>
+    <h2 class="fplog-title">FPJS API Call Log</h2>
+    <p class="fplog-sub">All Fingerprint API calls this session — newest first · ap.api.fpjs.io</p>
+    <div id="fplog-loading" style="text-align:center;padding:32px;color:var(--muted)">Loading…</div>
+    <table class="fplog-table" id="fplog-table" style="display:none">
+      <thead><tr><th>Time</th><th>Event</th><th>Type</th><th>UI Trigger</th><th>Visitor ID</th><th>Signals</th></tr></thead>
+      <tbody id="fplog-body"></tbody>
+    </table>
+    <div id="fplog-empty" style="display:none;text-align:center;padding:32px;color:var(--muted)">No API calls recorded yet this session.</div>
+  </div>
+</div>
+
+</body>
+</html>

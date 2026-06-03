@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fingerprint University — Sign in</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+  /* ── Toast notifications ──────────────────────────────────────────────────── */
+  .toast-container { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+  .toast { display:flex; align-items:flex-start; gap:10px; padding:12px 16px; border-radius:10px; font-size:13px; font-family:'Inter',sans-serif; max-width:340px; pointer-events:all; box-shadow:0 4px 20px rgba(0,0,0,.25); animation:toast-in .25s ease; }
+  .toast.toast-warn  { background:#1e1a12; border:1px solid rgba(245,158,11,.4); color:#fbbf24; }
+  .toast.toast-info  { background:#0f1f0f; border:1px solid rgba(34,197,94,.3);  color:#86efac; }
+  .toast-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+  .toast-body { line-height:1.5; }
+  .toast-title { font-weight:600; margin-bottom:2px; }
+  .toast-msg   { font-size:12px; opacity:.8; }
+  @keyframes toast-in  { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes toast-out { to   { opacity:0; transform:translateY(12px); } }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    [data-theme="dark"] {
+      --bg:      #08090d;
+      --surface: #0e0f16;
+      --card:    #13141e;
+      --border:  rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.13);
+      --text:    #ededee;
+      --muted:   #6c6d80;
+      --accent:  #f97316;
+      --accent2: #fdba74;
+      --green:   #22c55e;
+      --red:     #ef4444;
+      --amber:   #f59e0b;
+    }
+    [data-theme="light"] {
+      --bg:      #f0f1f5;
+      --surface: #ffffff;
+      --card:    #ffffff;
+      --border:  rgba(0,0,0,0.08);
+      --border2: rgba(0,0,0,0.14);
+      --text:    #0d0e14;
+      --muted:   #7a7b8e;
+      --accent:  #ea6b0e;
+      --accent2: #c45a08;
+      --green:   #16a34a;
+      --red:     #dc2626;
+      --amber:   #d97706;
+    }
+
+    html, body { height: 100%; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; transition: background .2s, color .2s; }
+
+    /* ── Header ── */
+    header { flex-shrink: 0; height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 24px; background: var(--surface); position: fixed; top: 0; left: 0; right: 0; z-index: 50; }
+    .logo { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .logo-dot { width: 7px; height: 7px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); }
+    .header-nav { display: flex; gap: 18px; }
+    .header-nav a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color .15s; white-space: nowrap; }
+    .header-nav a:hover { color: var(--accent); }
+    .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+    .theme-btn { width: 32px; height: 32px; border-radius: 7px; background: transparent; border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; transition: border-color .15s; }
+    .theme-btn:hover { border-color: var(--accent); }
+    /* Push content below fixed header and above fixed footer */
+    body { padding-top: 56px; padding-bottom: 48px; }
+
+    /* ── Three-column layout ── */
+    .page-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr 400px; overflow: hidden; height: 100%; }
+
+    /* ── Left panel — headline + taglines ── */
+    .left-panel {
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 56px 52px; overflow: hidden; position: relative;
+    }
+    .left-panel::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridScroll 22s linear infinite;
+    }
+    @keyframes gridScroll { 0% { background-position: 0 0; } 100% { background-position: 48px 48px; } }
+    .left-content { position: relative; z-index: 1; }
+
+    .left-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .left-eyebrow::before { content: ''; display: block; width: 28px; height: 1px; background: var(--accent); }
+
+    /* Welcome to / Fingerprint University — prominent H2-level branding */
+    .left-welcome { font-size: 15px; font-weight: 400; color: var(--muted); letter-spacing: .04em; margin-bottom: 6px; }
+    .left-university { font-size: clamp(26px, 2.8vw, 38px); font-weight: 700; color: var(--text); letter-spacing: -.02em; margin-bottom: 20px; line-height: 1.2; }
+
+    .left-headline { font-size: clamp(32px, 3.8vw, 58px); font-weight: 800; line-height: 1.0; letter-spacing: -.04em; margin-bottom: 20px; }
+    .left-headline .accent-word { color: transparent; -webkit-text-stroke: 1.5px var(--accent); }
+
+    .tagline-wrap { height: 28px; overflow: hidden; margin-bottom: 40px; }
+    .tagline-track { display: flex; flex-direction: column; animation: taglineRoll 8s ease-in-out infinite; }
+    @keyframes taglineRoll {
+      0%,  18% { transform: translateY(0); }
+      25%, 43% { transform: translateY(-28px); }
+      50%, 68% { transform: translateY(-56px); }
+      75%, 93% { transform: translateY(-84px); }
+      100%     { transform: translateY(0); }
+    }
+    .tagline { font-size: 16px; color: var(--muted); line-height: 28px; white-space: nowrap; }
+    .tagline span { color: var(--text); font-weight: 500; }
+
+    /* Stats row */
+    .stat-row { display: flex; gap: 28px; }
+    .stat-item { display: flex; flex-direction: column; gap: 3px; }
+    .stat-num { font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; color: var(--accent); }
+    .stat-lbl { font-size: 12px; color: var(--muted); }
+
+    /* ── Center panel — USP cards ── */
+    .center-panel {
+      background: var(--bg); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 40px 36px; gap: 12px; overflow-y: auto;
+    }
+    .center-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+
+    .usp-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 18px; display: flex; align-items: flex-start; gap: 14px;
+      transition: border-color .2s, transform .2s;
+      cursor: default;
+    }
+    .usp-card:hover { border-color: rgba(249,115,22,.3); transform: translateX(3px); }
+    .usp-icon { width: 38px; height: 38px; border-radius: 9px; background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.2); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .usp-text strong { display: block; font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .usp-text span { font-size: 13px; color: var(--muted); line-height: 1.55; }
+    .usp-badge { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; background: rgba(249,115,22,.12); color: var(--accent); padding: 3px 8px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+    .usp-badge.soon { background: rgba(108,109,128,.1); color: var(--muted); }
+
+    /* Contact link below USP cards */
+    .contact-link-wrap { margin-top: 4px; padding: 14px 18px; background: var(--card); border: 1px solid rgba(249,115,22,.2); border-radius: 12px; }
+    .contact-link-wrap p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 10px; }
+    .contact-link-wrap a { display: inline-block; font-size: 15px; font-weight: 700; color: var(--accent); text-decoration: none; border-bottom: 2px solid var(--accent); padding-bottom: 1px; transition: opacity .15s; }
+    .contact-link-wrap a:hover { opacity: .78; }
+
+    /* ── Right panel — form ── */
+    .right-panel { display: flex; flex-direction: column; overflow-y: auto; padding: 36px 32px; gap: 16px; background: var(--surface); }
+
+    .form-heading { font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+    .form-sub { font-size: 15px; color: var(--muted); line-height: 1.6; }
+
+    /* Visitor ID card */
+    .fp-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; }
+    .fp-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .fp-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background .3s, box-shadow .3s; flex-shrink: 0; }
+    .fp-status-dot.live  { background: var(--green); box-shadow: 0 0 7px var(--green); }
+    .fp-status-dot.error { background: var(--red); }
+    .fp-card-label { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .visitor-id-display { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 500; color: var(--accent2); word-break: break-all; margin-bottom: 10px; min-height: 20px; }
+    .signals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .sig-pill { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border2); color: var(--muted); background: var(--surface); display: flex; align-items: center; gap: 5px; }
+    .sig-pill .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+    .sig-pill.green { border-color: rgba(34,197,94,.25); color: #86efac; background: rgba(34,197,94,.06); }
+    .sig-pill.green .dot { background: var(--green); }
+    .sig-pill.amber { border-color: rgba(245,158,11,.25); color: #fcd34d; background: rgba(245,158,11,.06); }
+    .sig-pill.amber .dot { background: var(--amber); }
+    .sig-pill.red   { border-color: rgba(239,68,68,.25);  color: #fca5a5; background: rgba(239,68,68,.06); }
+    .sig-pill.red   .dot { background: var(--red); }
+
+    .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+    .field input { width: 100%; padding: 12px 14px; background: var(--surface); border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: var(--text); outline: none; transition: border-color .15s; }
+    .field input:focus { border-color: var(--accent); }
+    .field .field-error { font-size: 12px; color: var(--red); margin-top: 5px; display: none; }
+    .field.has-error input { border-color: var(--red); }
+
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+    .btn-login  { padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .btn-login:hover    { opacity: .88; }
+    .btn-login:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-signup { padding: 13px; background: transparent; color: var(--text); border: 1.5px solid var(--border2); border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: border-color .15s, color .15s; }
+    .btn-signup:hover { border-color: var(--accent); color: var(--accent); }
+
+    .error-box { font-size: 14px; color: #fca5a5; background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 10px 14px; display: none; margin-top: 10px; line-height: 1.5; }
+
+    /* ── Footer ── */
+    footer { height: 48px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 18px; padding: 0 28px; background: var(--surface); position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; }
+    footer a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color .15s; }
+    footer a:hover { color: var(--accent); }
+    footer .sep { color: var(--border2); font-size: 14px; }
+
+    .spinner { display: inline-block; width: 11px; height: 11px; border: 1.5px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 5px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:24px}
+    .modal-backdrop.open{display:flex}
+    @media (max-width: 1100px) { .page-body { grid-template-columns: 1fr 400px; } .center-panel { display: none; } }
+    @media (max-width: 720px)  { .page-body { grid-template-columns: 1fr; } .left-panel { display: none; } .right-panel { padding: 28px 20px; } }
+  </style>
+</head>
+<body>
+<div class="toast-container" id="toast-container"></div>
+
+<header>
+  <a class="logo" href="/"><span class="logo-dot"></span>Fingerprint University</a>
+  <nav class="header-nav">
+    <a href="https://docs.fingerprint.com/docs/quick-start-guide" target="_blank">Quick start</a>
+    <a href="https://docs.fingerprint.com/docs/smart-signals-introduction" target="_blank">Smart signals</a>
+    <a href="https://docs.fingerprint.com/docs/identification-accuracy-and-confidence" target="_blank">Accuracy</a>
+    <a href="https://dashboard.fingerprint.com" target="_blank">Dashboard ↗</a>
+  </nav>
+  <div class="header-right">
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+  </div>
+</header>
+
+<div class="page-body">
+
+  <!-- ── Left: headline + taglines ── -->
+  <div class="left-panel">
+    <div class="left-content">
+      <p class="left-welcome">Welcome to</p>
+      <p class="left-university">Fingerprint University</p>
+      <p class="left-eyebrow">Device intelligence demo</p>
+      <h1 class="left-headline">Know your<br><span class="accent-word">device.</span><br>Stop the fraud.</h1>
+      <div class="tagline-wrap">
+        <div class="tagline-track">
+          <p class="tagline">Survives <span>incognito mode</span> and cookie clears</p>
+          <p class="tagline">Works across <span>VPNs</span> and proxy servers</p>
+          <p class="tagline">Identifies <span>bots</span> and tampered browsers</p>
+          <p class="tagline">Persists across <span>multiple accounts</span></p>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-item"><span class="stat-num">99.5%</span><span class="stat-lbl">Identification accuracy</span></div>
+        <div class="stat-item"><span class="stat-num">300+</span><span class="stat-lbl">Browser signals used</span></div>
+        <div class="stat-item"><span class="stat-num">&lt;500ms</span><span class="stat-lbl">Avg response time</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Center: USP cards + Contact form ── -->
+  <div class="center-panel">
+    <p class="center-title">What you can do here</p>
+
+    <div class="usp-card">
+      <div class="usp-icon">🎬</div>
+      <div class="usp-text">
+        <strong>Watch video lectures</strong>
+        <span>3 free videos per device — not per account. Device limits that no DB flag can replicate.</span>
+      </div>
+      <span class="usp-badge">Live</span>
+    </div>
+
+    <div class="usp-card">
+      <div class="usp-icon">📖</div>
+      <div class="usp-text">
+        <strong>Read documentation</strong>
+        <span>Smart Signals, Bot Detection, Webhooks and more — right inside the app.</span>
+      </div>
+      <span class="usp-badge">Live</span>
+    </div>
+
+    <div class="usp-card">
+      <div class="usp-icon">🏆</div>
+      <div class="usp-text">
+        <strong>Get certified</strong>
+        <span>Complete lectures and pass the knowledge check to earn your Fingerprint University certificate.</span>
+      </div>
+      <span class="usp-badge">Live</span>
+    </div>
+
+    <div class="usp-card">
+      <div class="usp-icon">⭐</div>
+      <div class="usp-text">
+        <strong>Leave a review</strong>
+        <span>Win a $20 gift card. One per device — Fingerprint detects duplicate and bot-driven submissions.</span>
+      </div>
+      <span class="usp-badge">Live</span>
+    </div>
+
+    <!-- Contact Us link — leads to dedicated page -->
+    <div class="contact-link-wrap">
+      <p>Interested in Fingerprint device intelligence for your whole tech team?</p>
+      <a href="/contact">🏢 Request team training →</a>
+    </div>
+
+  </div>
+
+  <!-- ── Right: form ── -->
+  <div class="right-panel">
+    <div>
+      <h2 class="form-heading" id="panel-heading">Sign in</h2>
+      <p class="form-sub" id="panel-sub">Sign in to your Fingerprint University account</p>
+    </div>
+
+    <!-- Visitor ID panel (sign-in only) -->
+    <div class="fp-card" id="fp-card-wrap">
+      <div class="fp-card-header">
+        <div class="fp-status-dot" id="fp-dot"></div>
+        <span class="fp-card-label">Visitor ID — Identification API</span>
+      </div>
+      <div class="visitor-id-display" id="visitor-id-display">
+        <span style="color:var(--muted);font-size:12px">Will identify on sign in…</span>
+      </div>
+      <div class="signals-grid" id="signals-grid">
+        <div class="sig-pill"><span class="dot"></span>confidence: –</div>
+        <div class="sig-pill"><span class="dot"></span>incognito: –</div>
+        <div class="sig-pill"><span class="dot"></span>bot: –</div>
+        <div class="sig-pill"><span class="dot"></span>request id: –</div>
+      </div>
+    </div>
+
+    <!-- ── SIGN IN PANEL ── -->
+    <div id="panel-signin">
+      <div class="form-card">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="email" value="" autocomplete="email"/>
+          <span class="field-error" id="err-signin-email" style="font-size:12px;color:var(--red);margin-top:4px;display:none"></span>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" value="" autocomplete="current-password"
+                 onkeydown="if(event.key==='Enter') doLogin()"/>
+        </div>
+        <div style="text-align:right;margin-bottom:12px">
+          <button onclick="showPanel('forgot')" style="background:none;border:none;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:color .15s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">Forgot password?</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn-login" id="login-btn" onclick="doLogin()">Sign in</button>
+          <button class="btn-signup" onclick="showPanel('signup')">Sign up</button>
+        </div>
+        <div class="error-box" id="signin-error"></div>
+      </div>
+    </div>
+
+    <!-- ── SIGN UP PANEL ── -->
+    <div id="panel-signup" style="display:none">
+      <div class="form-card">
+        <div class="field">
+          <label>Full name</label>
+          <input type="text" id="signup-name" placeholder="Your name" autocomplete="name"/>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email"/>
+          <span class="field-error" id="err-signup-email" style="font-size:12px;color:var(--red);margin-top:4px;display:none"></span>
+        </div>
+        <div class="field">
+          <label>Password <span style="font-weight:400;color:var(--muted);font-size:11px">(min 6 characters)</span></label>
+          <input type="password" id="signup-password" placeholder="Choose a password"
+                 onkeydown="if(event.key==='Enter') doSignup()"/>
+        </div>
+        <button class="btn-login" id="signup-btn" onclick="doSignup()" style="margin-bottom:10px">Create account</button>
+        <div style="text-align:center">
+          <button onclick="showPanel('signin')" style="background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif">Already have an account? Sign in</button>
+        </div>
+        <div class="error-box" id="signup-error"></div>
+      </div>
+    </div>
+
+    <!-- ── FORGOT PASSWORD PANEL ── -->
+    <div id="panel-forgot" style="display:none">
+      <div class="form-card">
+        <p style="font-size:14px;color:var(--muted);margin-bottom:16px;line-height:1.6">Enter your email and we'll send a password reset link. Check the server terminal for the link (email sending is a PoC stub).</p>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="forgot-email" placeholder="you@example.com"
+                 onkeydown="if(event.key==='Enter') doForgot()"/>
+          <span class="field-error" id="err-forgot-email" style="font-size:12px;color:var(--red);margin-top:4px;display:none"></span>
+        </div>
+        <button class="btn-login" id="forgot-btn" onclick="doForgot()" style="margin-bottom:10px">Send reset link</button>
+        <div style="text-align:center">
+          <button onclick="showPanel('signin')" style="background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif">← Back to sign in</button>
+        </div>
+        <div class="error-box" id="forgot-error"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <a href="https://fingerprint.com" target="_blank">fingerprint.com</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com" target="_blank">Docs</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com/docs/smart-signals-introduction" target="_blank">Smart signals</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com/docs/webhooks" target="_blank">Webhooks</a>
+  <span class="sep">|</span>
+  <a href="https://github.com/fingerprintjs/fingerprintjs" target="_blank">GitHub ↗</a>
+</footer>
+
+<script type="module">
+  const FP_PUBLIC_KEY = '__FP_PUBLIC_KEY__';
+
+  // ── Theme ──────────────────────────────────────────────────────────────────
+  function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); document.getElementById('theme-btn').textContent = t === 'dark' ? '🌙' : '☀️'; localStorage.setItem('fp-theme', t); }
+  window.toggleTheme = () => { const c = document.documentElement.getAttribute('data-theme'); applyTheme(c === 'dark' ? 'light' : 'dark'); };
+  applyTheme(localStorage.getItem('fp-theme') || 'dark');
+
+  let fpResult  = null;
+  let fpAgent   = null;   // cached agent so we don't reload it
+
+  // ── Pre-load the FP agent silently on page load (faster on click) ──────────
+  // We load the agent but do NOT call fp.get() yet — that happens on Sign In.
+  // This means incognito detection and other signals are captured at click time,
+  // reflecting the actual browser state when the user attempts to authenticate.
+  async function preloadAgent() {
+    try {
+      const FP = await import(`https://fpjscdn.net/v4/${FP_PUBLIC_KEY}`);
+      // v4: start() is SYNCHRONOUS — no await needed
+      fpAgent = FP.start({ apiKey: FP_PUBLIC_KEY });
+    } catch (e) { /* non-blocking */ }
+  }
+
+  // ── Run identification (called on Sign In click) ───────────────────────────
+  async function identify() {
+    const dotEl = document.getElementById('fp-dot');
+    const vidEl = document.getElementById('visitor-id-display');
+    dotEl.classList.remove('live', 'error');
+    vidEl.innerHTML = '<span class="spinner"></span><span style="color:var(--muted);font-size:12px">Identifying…</span>';
+
+    try {
+      if (!fpAgent) {
+        const FP = await import(`https://fpjscdn.net/v4/${FP_PUBLIC_KEY}`);
+        // v4: start() is synchronous, returns agent directly
+        fpAgent = FP.start({ apiKey: FP_PUBLIC_KEY });
+      }
+
+      const fingerprint = await fpAgent.get();
+      console.log('[FP] v4 agent result keys:', Object.keys(fingerprint));
+
+      // v4 field names: event_id (not requestId), visitor_id (not visitorId)
+      // IMPORTANT: when sealed key is ACTIVE, visitor_id is stripped from client payload.
+      // We only get visitor_id from the unsealed result on the server.
+      const eventId    = fingerprint.event_id   || '';
+      const visitorId  = fingerprint.visitor_id  || ''; // empty when sealed key is active
+
+      // Sealed result — BinaryOutput, serialize with .base64()
+      let sealedResultBase64 = null;
+      if (fingerprint.sealed_result && typeof fingerprint.sealed_result.base64 === 'function') {
+        sealedResultBase64 = fingerprint.sealed_result.base64();
+        console.log('[FP] sealed_result present — will be decrypted server-side');
+      } else {
+        console.log('[FP] no sealed_result — sealed key not yet activated in Dashboard');
+      }
+
+      // When sealed key is active: visitor_id is empty, sealed_result has everything.
+      // When sealed key is inactive: visitor_id is populated, sealed_result is null.
+      const displayId = visitorId || (sealedResultBase64 ? '(sealed — decoded server-side)' : '(pending)');
+
+      fpResult = {
+        visitorId,        // may be empty if sealed key is active
+        requestId:  eventId,
+        eventId,
+        sealedResult: sealedResultBase64,
+        confidence:   fingerprint.confidence?.score ?? 0,
+        incognito:    fingerprint.incognito ?? false,
+        bot:          false, // not in v4 client payload
+        vpn:          false, // not in v4 client payload
+        highActivity: false,
+        ipInfo:       null,
+        browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        browserTzOffset: new Date().getTimezoneOffset(),
+        suspectScore: fingerprint.suspect_score ?? 0, // v4 exposes suspect_score directly
+        hasSealedResult: !!sealedResultBase64,
+      };
+      sessionStorage.setItem('fp_result', JSON.stringify(fpResult));
+
+      dotEl.classList.add('live');
+      vidEl.textContent = displayId;
+      const conf = fpResult.confidence;
+      document.getElementById('signals-grid').innerHTML = `
+        <div class="sig-pill ${conf > 0.7 ? 'green' : conf > 0 ? 'amber' : 'muted'}"><span class="dot"></span>confidence: ${conf > 0 ? (conf*100).toFixed(0)+'%' : 'sealed'}</div>
+        <div class="sig-pill"><span class="dot"></span>incognito: fetching…</div>
+        <div class="sig-pill"><span class="dot"></span>bot: fetching…</div>
+        <div class="sig-pill ${sealedResultBase64 ? 'green' : 'amber'}"><span class="dot"></span>${sealedResultBase64 ? '🔒 sealed' : 'vpn: checking…'}</div>
+      `;
+
+      return true;
+    } catch (err) {
+      dotEl.classList.add('error');
+      vidEl.textContent = `Error: ${err.message}`;
+      console.error('[FP identify error]', err);
+      return false;
+    }
+  }
+
+  // ── VPN + IP timezone mismatch check ─────────────────────────────────────
+  // Fires a popup if:
+  //   (a) VPN is explicitly detected by Fingerprint, OR
+  //   (b) The IP geolocation timezone does not match the browser's reported timezone
+  function checkVpnAndTimezone(fp, raw) {
+    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Get IP location timezone from Fingerprint ipInfo if available
+    const ipTimezone = raw?.ipInfo?.v4?.geolocation?.timezone
+                    || raw?.ipInfo?.v6?.geolocation?.timezone
+                    || null;
+
+    const vpnDetected = fp.vpn;
+    const tzMismatch  = ipTimezone && !sameUtcOffset(ipTimezone, browserTz);
+
+    if (vpnDetected || tzMismatch) {
+      const reasons = [];
+      if (vpnDetected)  reasons.push('VPN usage detected by Fingerprint');
+      if (tzMismatch)   reasons.push(`IP timezone (${ipTimezone}, UTC${offsetLabel(ipTimezone)}) does not match browser timezone (${browserTz}, UTC${offsetLabel(browserTz)})`);
+
+      document.getElementById('vpn-reason-list').innerHTML =
+        reasons.map(r => `<li style="margin-bottom:4px">• ${r}</li>`).join('');
+      document.getElementById('vpn-modal').classList.add('open');
+    }
+  }
+
+  // ── Login flow ─────────────────────────────────────────────────────────────
+  window.doLogin = async function() {
+    const btn   = document.getElementById('login-btn');
+    const errEl = document.getElementById('signin-error');
+    const emailVal = document.getElementById('email').value.trim();
+    errEl.style.display = 'none';
+    errEl.style.background = ''; errEl.style.borderColor = ''; errEl.style.color = '';
+
+    // Email validation
+    if (!emailVal || !isValidEmail(emailVal)) {
+      setFieldError('email', 'err-signin-email', !emailVal ? 'Email is required.' : 'Please enter a valid email address (must contain @).');
+      return;
+    }
+    setFieldError('email', 'err-signin-email', null);
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Identifying device…';
+
+    // Step 1: Fingerprint identification (on button click, not page load)
+    const identified = await identify();
+    if (!identified) {
+      btn.disabled = false; btn.textContent = 'Sign in'; return;
+    }
+
+    btn.innerHTML = '<span class="spinner"></span>Signing in…';
+
+    try {
+      // Step 2: Authenticate the user
+      const loginRes = await fetch('/api/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email:    document.getElementById('email').value.trim(),
+          password: document.getElementById('password').value,
+        }),
+      }).then(r => r.json());
+
+      if (!loginRes.ok) {
+        errEl.textContent = loginRes.error; errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Sign in'; return;
+      }
+
+      // Step 3: Send to backend — exact field names from docs
+      // https://docs.fingerprint.com/docs/sealed-client-results
+      const fpRes = await fetch('/api/fp/identify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // Doc-specified fields
+          event_id:             fpResult.eventId || fpResult.requestId,
+          sealed_result_base64: fpResult.sealedResult || null,
+          // Fallback fields (used when sealed key not yet active)
+          visitorId:    fpResult.visitorId,
+          requestId:    fpResult.requestId,
+          confidence:   fpResult.confidence,
+          incognito:    fpResult.incognito,
+          bot:          fpResult.bot,
+          vpn:          fpResult.vpn,
+          suspectScore: fpResult.suspectScore,
+          highActivity: fpResult.highActivity,
+        }),
+      }).then(r => r.json());
+
+      if (!fpRes.ok) {
+        errEl.textContent = fpRes.error; errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'Sign in'; return;
+      }
+
+      // Store session token in both localStorage (cross-tab) and sessionStorage (per-tab)
+      if (fpRes.sessionToken) {
+        const tokenData = JSON.stringify({
+          token:     fpRes.sessionToken,
+          visitorId: fpRes.visitorId,   // use server-returned visitorId (authoritative)
+          issuedAt:  Date.now(),
+          expiresAt: Date.now() + (4 * 60 * 60 * 1000),
+        });
+        localStorage.setItem('fp_session', tokenData);
+        sessionStorage.setItem('fp_session_token', fpRes.sessionToken);
+      }
+
+      // CRITICAL: update fpResult.visitorId from server response.
+      // When sealed key is active, the client never receives visitor_id from the agent —
+      // it only comes back from the server after unsealing.
+      if (fpRes.visitorId) {
+        fpResult.visitorId = fpRes.visitorId;
+      }
+
+  // ── Toast notifications ────────────────────────────────────────────────────
+  function showToast(title, message, type = 'warn', duration = 5000) {
+    const icon = type === 'warn' ? '⚠️' : type === 'info' ? 'ℹ️' : '❌';
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `<div class="toast-icon">${icon}</div>
+      <div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${message}</div></div>`;
+    document.getElementById('toast-container').appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'toast-out .3s ease forwards';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+      // Step 4: Update client cache with server-verified signals from sealed result.
+      // s.bot is "notDetected"/"bad" (string), s.vpn/incognito are booleans,
+      // s.suspectScore is a number, s.confidence is 0-1 float.
+      if (fpRes.usedSealed && fpRes.signals) {
+        const s = fpRes.signals;
+        fpResult.visitorId    = fpRes.visitorId   || fpResult.visitorId;
+        fpResult.confidence   = s.confidence       != null ? s.confidence  : fpResult.confidence;
+        fpResult.incognito    = s.incognito        === true;
+        fpResult.vpn          = s.vpn              === true;
+        fpResult.bot          = s.bot              === 'bad';
+        fpResult.suspectScore = s.suspectScore      != null ? s.suspectScore : fpResult.suspectScore;
+        fpResult._ipTimezone  = s.ipTimezone        || null;
+        fpResult._ipCountry   = s.ipCountry         || null;
+        fpResult._ipCity      = s.ipCity            || null;
+        fpResult._ipAddress   = s.ipAddress         || null;
+        fpResult._lastServerApiCallAt = Date.now();
+        // Write final authoritative state to sessionStorage — this is what videos.html reads
+        sessionStorage.setItem('fp_result', JSON.stringify(fpResult));
+
+        // Update visitor ID display
+        document.getElementById('visitor-id-display').textContent = fpResult.visitorId;
+
+        // Update signal pills with all server-verified values
+        const conf = fpResult.confidence;
+        const suspectCls = fpResult.suspectScore >= 12 ? 'red' : fpResult.suspectScore >= 6 ? 'amber' : 'green';
+        document.getElementById('signals-grid').innerHTML = `
+          <div class="sig-pill ${conf > 0.7 ? 'green' : 'amber'}"><span class="dot"></span>conf: ${(conf*100).toFixed(0)}%</div>
+          <div class="sig-pill ${fpResult.incognito ? 'amber' : 'green'}"><span class="dot"></span>incognito: ${fpResult.incognito ? 'yes' : 'no'}</div>
+          <div class="sig-pill ${fpResult.bot ? 'red' : 'green'}"><span class="dot"></span>bot: ${fpResult.bot ? 'detected' : 'none'}</div>
+          <div class="sig-pill ${fpResult.vpn ? 'amber' : 'green'}"><span class="dot"></span>vpn: ${fpResult.vpn ? 'yes' : 'no'}</div>
+          <div class="sig-pill ${suspectCls}"><span class="dot"></span>suspect: ${fpResult.suspectScore ?? 0}</div>
+          <div class="sig-pill green"><span class="dot"></span>🔒 sealed & verified</div>
+        `;
+
+        // VPN / timezone check
+        const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const ipTz       = fpResult._ipTimezone;
+        const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
+        if (fpResult.vpn || tzMismatch) {
+          const reasons = [];
+          if (fpResult.vpn)  reasons.push('VPN usage confirmed (sealed result)');
+          if (tzMismatch)    reasons.push(`IP timezone (${ipTz}, UTC${offsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${offsetLabel(browserTz)})`);
+          document.getElementById('vpn-reason-list').innerHTML =
+            reasons.map(r => `<li style="margin-bottom:4px">• ${r}</li>`).join('');
+          document.getElementById('vpn-modal').classList.add('open');
+          await vpnModalDismissed();
+        }
+      } else {
+        // Fallback: sealed result not available — call Server API for Smart Signals
+        showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API for signals.', 'warn');
+        btn.innerHTML = '<span class="spinner"></span>Fetching device signals…';
+        try {
+          const ssRes = await fetch('/api/smart-signals?requestId=' + fpResult.requestId)
+            .then(r => r.json());
+          if (ssRes.ok) {
+            const s = ssRes.signals;
+            fpResult.incognito    = s.incognito   === true;
+            fpResult.vpn          = s.vpn         === true;
+            fpResult.bot          = s.bot         === 'bad';
+            fpResult.confidence   = s.confidence  !== undefined ? s.confidence : fpResult.confidence;
+            fpResult.suspectScore = ssRes.updatedSuspectScore !== undefined
+                                      ? ssRes.updatedSuspectScore : fpResult.suspectScore;
+            fpResult._ipTimezone  = s.ipInfo?.v4?.geolocation?.timezone || null;
+            fpResult._lastServerApiCallAt = Date.now();
+            sessionStorage.setItem('fp_result', JSON.stringify(fpResult));
+            const conf = fpResult.confidence;
+            document.getElementById('signals-grid').innerHTML = `
+              <div class="sig-pill ${conf > 0.7 ? 'green' : 'amber'}"><span class="dot"></span>confidence: ${(conf*100).toFixed(0)}%</div>
+              <div class="sig-pill ${fpResult.incognito ? 'amber' : 'green'}"><span class="dot"></span>incognito: ${fpResult.incognito ? 'yes' : 'no'}</div>
+              <div class="sig-pill ${fpResult.bot ? 'red' : 'green'}"><span class="dot"></span>bot: ${fpResult.bot ? 'detected' : 'none'}</div>
+              <div class="sig-pill ${fpResult.vpn ? 'amber' : 'green'}"><span class="dot"></span>vpn: ${fpResult.vpn ? 'detected' : 'none'}</div>
+            `;
+            const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const ipTz       = fpResult._ipTimezone;
+            const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
+            if (fpResult.vpn || tzMismatch) {
+              const reasons = [];
+              if (fpResult.vpn)  reasons.push('VPN usage confirmed by Fingerprint Server API');
+              if (tzMismatch)    reasons.push(`IP timezone (${ipTz}, UTC${offsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${offsetLabel(browserTz)})`);
+              document.getElementById('vpn-reason-list').innerHTML =
+                reasons.map(r => `<li style="margin-bottom:4px">• ${r}</li>`).join('');
+              document.getElementById('vpn-modal').classList.add('open');
+              await vpnModalDismissed();
+            }
+          }
+        } catch(ssErr) {
+          console.warn('[FP] Smart Signals fetch failed:', ssErr.message);
+        }
+      }
+
+      // Show confirmed values for 3 seconds before navigating
+      btn.innerHTML = '✓ Identified — redirecting…';
+      btn.style.background = 'var(--green, #22c55e)';
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      window.location.href = '/videos';
+    } catch (err) {
+      errEl.textContent = 'Something went wrong. Try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Sign in';
+    }
+  };
+
+  // ── Timezone helpers ──────────────────────────────────────────────────────
+  // Convert a timezone name to its current UTC offset in minutes.
+  // Using a fixed reference date ensures DST is accounted for consistently.
+  function tzOffsetMinutes(tz) {
+    try {
+      const now = new Date();
+      // Format the date in the target timezone and in UTC, then diff
+      const local = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+      const utc   = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+      return Math.round((local - utc) / 60000);
+    } catch (e) { return null; }
+  }
+
+  // Returns true if two timezone names resolve to the same UTC offset right now.
+  // This handles aliases: Asia/Kolkata === Asia/Calcutta (both +330 min),
+  // America/New_York === EST, etc.
+  function sameUtcOffset(tz1, tz2) {
+    const o1 = tzOffsetMinutes(tz1);
+    const o2 = tzOffsetMinutes(tz2);
+    if (o1 === null || o2 === null) return false;
+    return o1 === o2;
+  }
+
+  // Format an offset as "+05:30" / "-07:00" for display
+  function offsetLabel(tz) {
+    const mins = tzOffsetMinutes(tz);
+    if (mins === null) return '?';
+    const sign = mins >= 0 ? '+' : '-';
+    const abs  = Math.abs(mins);
+    const h    = String(Math.floor(abs / 60)).padStart(2, '0');
+    const m    = String(abs % 60).padStart(2, '0');
+    return `${sign}${h}:${m}`;
+  }
+
+  // ── Modal dismissal promise ────────────────────────────────────────────────
+  // Navigation is blocked until this resolves — the user must click a button.
+  let _vpnDismissResolve = null;
+  function vpnModalDismissed() {
+    return new Promise(resolve => { _vpnDismissResolve = resolve; });
+  }
+
+  window.closeVpnModal = () => {
+    document.getElementById('vpn-modal').classList.remove('open');
+    if (_vpnDismissResolve) { _vpnDismissResolve(); _vpnDismissResolve = null; }
+  };
+  window.vpnProceed = () => {
+    closeVpnModal();
+    alert('A verification code would be sent to your email. (Demo only — no email sent)');
+  };
+
+  // ── Email validation ──────────────────────────────────────────────────────
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+  function setFieldError(inputId, errorId, msg) {
+    const inp = document.getElementById(inputId);
+    const err = document.getElementById(errorId);
+    if (inp) inp.style.borderColor = msg ? 'var(--red)' : '';
+    if (err) { err.textContent = msg || ''; err.style.display = msg ? 'block' : 'none'; }
+  }
+
+  // ── Panel switching ───────────────────────────────────────────────────────
+  const PANELS = { signin: 'Sign in', signup: 'Create account', forgot: 'Reset password' };
+  window.showPanel = function(name) {
+    Object.keys(PANELS).forEach(p => {
+      document.getElementById('panel-' + p).style.display = p === name ? 'block' : 'none';
+    });
+    document.getElementById('panel-heading').textContent = PANELS[name];
+    document.getElementById('panel-sub').style.display   = name === 'signin' ? 'block' : 'none';
+    document.getElementById('fp-card-wrap').style.display = name === 'signin' ? 'block' : 'none';
+    // clear all error boxes
+    ['signin-error','signup-error','forgot-error'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.display = 'none'; el.textContent = ''; }
+    });
+  };
+
+  // ── Sign up ───────────────────────────────────────────────────────────────
+  window.doSignup = async function() {
+    const name     = document.getElementById('signup-name').value.trim();
+    const email    = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const btn      = document.getElementById('signup-btn');
+    const errEl    = document.getElementById('signup-error');
+    errEl.style.display = 'none';
+
+    if (!name || !email || !password) {
+      errEl.textContent = 'All fields are required.'; errEl.style.display = 'block'; return;
+    }
+    if (!isValidEmail(email)) {
+      setFieldError('signup-email', 'err-signup-email', 'Please enter a valid email address (must contain @).');
+      return;
+    }
+    setFieldError('signup-email', 'err-signup-email', null);
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Creating account…';
+
+    const res = await fetch('/api/signup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    }).then(r => r.json());
+
+    if (res.ok) {
+      // Pre-fill the sign-in form and switch back
+      document.getElementById('email').value    = email;
+      document.getElementById('password').value = '';
+      showPanel('signin');
+      // Show a success nudge in the sign-in error box styled green
+      const successEl = document.getElementById('signin-error');
+      successEl.textContent   = '✓ Account created! Sign in below.';
+      successEl.style.display = 'block';
+      successEl.style.background = 'rgba(34,197,94,.08)';
+      successEl.style.borderColor = 'rgba(34,197,94,.2)';
+      successEl.style.color = 'var(--green)';
+    } else {
+      errEl.textContent = res.error; errEl.style.display = 'block';
+    }
+    btn.disabled = false; btn.textContent = 'Create account';
+  };
+
+  // ── Forgot password ───────────────────────────────────────────────────────
+  window.doForgot = async function() {
+    const email  = document.getElementById('forgot-email').value.trim();
+    const btn    = document.getElementById('forgot-btn');
+    const errEl  = document.getElementById('forgot-error');
+    errEl.style.display = 'none';
+
+    if (!email) {
+      setFieldError('forgot-email', 'err-forgot-email', 'Email is required.');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setFieldError('forgot-email', 'err-forgot-email', 'Please enter a valid email address (must contain @).');
+      return;
+    }
+    setFieldError('forgot-email', 'err-forgot-email', null);
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Sending…';
+
+    const res = await fetch('/api/forgot-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).then(r => r.json());
+
+    // Always show success (server never reveals if email exists)
+    errEl.textContent   = '✓ Check the server terminal for your reset link. (Email sending is a PoC stub.)';
+    errEl.style.display = 'block';
+    errEl.style.background  = 'rgba(34,197,94,.08)';
+    errEl.style.borderColor = 'rgba(34,197,94,.2)';
+    errEl.style.color       = 'var(--green)';
+    btn.disabled = false; btn.textContent = 'Send reset link';
+  };
+
+  // Pre-load FP agent silently so Sign In click is fast
+  preloadAgent();
+</script>
+
+<!-- ── VPN / timezone mismatch modal (persistent — must be explicitly dismissed) ── -->
+<div class="modal-backdrop" id="vpn-modal" style="z-index:200">
+  <div style="background:var(--card);border:1px solid rgba(245,158,11,.3);border-radius:16px;max-width:440px;width:100%;padding:36px;text-align:center;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.5)">
+    <div style="font-size:40px;margin-bottom:14px">🌐</div>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:10px">Possible VPN detected</h2>
+    <p style="font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:16px">
+      You might be using a VPN or your network location doesn't match your device timezone.
+      We'd need further details to confirm your candidature.
+    </p>
+    <ul id="vpn-reason-list" style="font-size:13px;color:var(--amber);text-align:left;padding:12px 16px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;margin-bottom:20px;list-style:none"></ul>
+    <button onclick="vpnProceed()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px">Send verification code to my email</button>
+    <button onclick="closeVpnModal()" style="font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif">Dismiss, continue anyway</button>
+  </div>
+</div>
+
+</body>
+</html>

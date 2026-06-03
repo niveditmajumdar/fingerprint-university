@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Center — Fingerprint University</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    [data-theme="dark"]{
+      --bg:#08090d;--surface:#0e0f16;--card:#13141e;--card2:#1a1b28;
+      --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+      --text:#ededee;--text2:#b0b1be;--muted:#6c6d80;
+      --accent:#f97316;--accent2:#fdba74;
+      --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#60a5fa;
+    }
+    [data-theme="light"]{
+      --bg:#f0f1f5;--surface:#fff;--card:#fff;--card2:#f8f9fb;
+      --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+      --text:#0d0e14;--text2:#3c3d4e;--muted:#7a7b8e;
+      --accent:#ea6b0e;--accent2:#c45a08;
+      --green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#2563eb;
+    }
+    html,body{height:100%}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;transition:background .2s,color .2s;padding-top:56px;padding-bottom:48px}
+
+    header{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;position:fixed;top:0;left:0;right:0;z-index:50;background:var(--surface);box-shadow:0 1px 0 var(--border)}
+    .logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px}
+    .logo-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
+    .admin-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);padding:3px 10px;border-radius:100px}
+    .header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+    .back-link{font-size:14px;color:var(--muted);text-decoration:none;transition:color .15s}
+    .back-link:hover{color:var(--accent)}
+    .theme-btn{width:32px;height:32px;border-radius:7px;background:transparent;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:border-color .15s}
+    .theme-btn:hover{border-color:var(--accent)}
+
+    footer{height:48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:18px;background:var(--surface);position:fixed;bottom:0;left:0;right:0;z-index:50}
+    footer a,footer button.flink{font-size:14px;color:var(--muted);text-decoration:none;transition:color .15s;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;padding:0}
+    footer a:hover,footer button.flink:hover{color:var(--accent)}
+    footer .sep{color:var(--border2);font-size:14px}
+
+    main{flex:1;padding:28px 28px 12px;display:flex;flex-direction:column;gap:20px;overflow:auto}
+
+    /* ── Page title ── */
+    .page-title{font-size:24px;font-weight:700;letter-spacing:-.02em}
+    .page-sub{font-size:15px;color:var(--muted);margin-top:4px}
+
+    /* ── Tab strip ── */
+    .admin-tabs{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:3px;width:fit-content}
+    .admin-tab{padding:8px 20px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+    .admin-tab.active{background:var(--card);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+    .admin-tab:hover:not(.active){color:var(--text)}
+
+    /* ── Two-column layout ── */
+    .admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1}
+    @media(max-width:900px){.admin-grid{grid-template-columns:1fr}}
+
+    /* ── Panel cards ── */
+    .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+    .panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .panel-title{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .panel-count{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent)}
+    .panel-body{flex:1;overflow-y:auto;padding:0}
+    .panel-loading{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+    .panel-empty{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+    .refresh-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:border-color .15s}
+    .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+    /* ── Validations panel ── */
+    .val-section{padding:16px 20px;border-bottom:1px solid var(--border)}
+    .val-section:last-child{border-bottom:none}
+    .val-section-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+    .val-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+    .val-row:last-child{margin-bottom:0}
+    .val-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center;margin-top:1px}
+    .val-label{font-size:15px;font-weight:600;margin-bottom:2px}
+    .val-desc{font-size:13px;color:var(--muted);line-height:1.55}
+    .val-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:5px;margin-left:8px;vertical-align:middle}
+    .val-badge.threshold{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    .val-badge.ttl{background:rgba(96,165,250,.1);color:var(--blue);border:1px solid rgba(96,165,250,.2)}
+    .val-badge.cached{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+    .val-badge.active{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+
+    /* ── API log rows ── */
+    .log-row{display:grid;grid-template-columns:80px 1fr 90px;gap:8px;align-items:start;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px}
+    .log-row:last-child{border-bottom:none}
+    .log-row:hover{background:rgba(255,255,255,.02)}
+    .log-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);white-space:nowrap}
+    .log-event{font-size:13px;color:var(--text2);line-height:1.4}
+    .log-trigger{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 6px;border-radius:4px;text-align:center;white-space:nowrap}
+    .log-trigger.js{background:rgba(96,165,250,.1);color:var(--blue);border:1px solid rgba(96,165,250,.2)}
+    .log-trigger.server{background:rgba(249,115,22,.1);color:var(--accent);border:1px solid rgba(249,115,22,.2)}
+    .log-trigger.error{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    .log-signals{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;line-height:1.5}
+    .log-vid{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px}
+
+    /* ── Signal chips inside log ── */
+    .sig{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:1px 6px;border-radius:4px;margin-right:3px;margin-top:2px}
+    .sig.red{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    .sig.amber{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+    .sig.green{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+    .sig.muted{background:rgba(108,109,128,.1);color:var(--muted);border:1px solid var(--border2)}
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/videos"><span class="logo-dot"></span>Fingerprint University</a>
+  <span class="admin-badge">Admin Center</span>
+  <div class="header-right">
+    <a class="back-link" href="/videos">← Back to app</a>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">🌙</button>
+  </div>
+</header>
+
+<main>
+  <div>
+    <h1 class="page-title">🛡️ Admin Center</h1>
+    <p class="page-sub">Live validation rules, API call log, and device signal events for this session. Independent of the student-facing interface.</p>
+  </div>
+
+  <div class="admin-grid">
+
+    <!-- LEFT: Validations & Rules -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Validation rules &amp; caching policy</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="val-section">
+          <div class="val-section-title">Suspect score</div>
+          <div class="val-row">
+            <span class="val-icon">⚠️</span>
+            <div>
+              <div class="val-label">Step-up threshold <span class="val-badge threshold">≥ 12</span></div>
+              <div class="val-desc">When a device's suspect score reaches 12 or above, a verification modal is shown before allowing certification submission. The score is a weighted sum of active signals.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">🔢</span>
+            <div>
+              <div class="val-label">Signal weights</div>
+              <div class="val-desc">
+                Bot detected <span class="val-badge threshold">+6</span>
+                VPN active <span class="val-badge threshold">+4</span>
+                Incognito mode <span class="val-badge threshold">+3</span>
+                Low confidence (&lt;50%) <span class="val-badge threshold">+4</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="val-section">
+          <div class="val-section-title">VPN detection</div>
+          <div class="val-row">
+            <span class="val-icon">🌐</span>
+            <div>
+              <div class="val-label">Login page <span class="val-badge active">Active</span></div>
+              <div class="val-desc">After sign-in, the Server API is called to get authoritative VPN status. If VPN is detected, a persistent modal appears requiring the user to dismiss before proceeding. Uses offset-based timezone comparison to avoid false positives from IANA aliases (e.g. Asia/Kolkata vs Asia/Calcutta).</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">🏆</span>
+            <div>
+              <div class="val-label">Certification tab <span class="val-badge active">Active</span></div>
+              <div class="val-desc">VPN detection is re-checked when the certification tab is opened (subject to the 2-minute TTL). If VPN is active, the suspect modal is triggered before the quiz renders. At submission, VPN status also blocks submission and triggers the verify-code modal.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">⭐</span>
+            <div>
+              <div class="val-label">Review submission <span class="val-badge active">Active</span></div>
+              <div class="val-desc">VPN detected at review submission time causes the review to be stored as <code style="font-family:monospace;font-size:12px;color:var(--accent2)">status = flagged</code> rather than approved. Gift card is withheld pending manual review.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="val-section">
+          <div class="val-section-title">Incognito mode</div>
+          <div class="val-row">
+            <span class="val-icon">🕵️</span>
+            <div>
+              <div class="val-label">Detection source <span class="val-badge active">Server API only</span></div>
+              <div class="val-desc">Incognito status is NOT available in the JS agent client response — it is a Smart Signal available only via the Server API. The JS agent cannot detect incognito mode itself; the server-side call after login provides the authoritative value.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">📊</span>
+            <div>
+              <div class="val-label">Effect on suspect score</div>
+              <div class="val-desc">Incognito mode adds <span class="val-badge threshold">+3</span> to the computed suspect score when detected. Combined with VPN (+4), this reaches 7 — still below the threshold of 12. Bot detection (+6) combined with incognito (+3) would push to 9. Bot + VPN hits 10.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="val-section">
+          <div class="val-section-title">Timezone mismatch</div>
+          <div class="val-row">
+            <span class="val-icon">🕐</span>
+            <div>
+              <div class="val-label">IP vs browser timezone <span class="val-badge active">Active</span></div>
+              <div class="val-desc">The IP geolocation timezone (from Server API <code style="font-family:monospace;font-size:12px;color:var(--accent2)">ipInfo.v4.geolocation.timezone</code>) is compared against the browser's reported timezone using UTC offset arithmetic — not string comparison. IANA aliases (e.g. Asia/Kolkata = Asia/Calcutta = UTC+5:30) are handled correctly.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="val-section">
+          <div class="val-section-title">Caching &amp; API call policy</div>
+          <div class="val-row">
+            <span class="val-icon">⏱️</span>
+            <div>
+              <div class="val-label">Certify tab TTL <span class="val-badge ttl">2 minutes</span></div>
+              <div class="val-desc">Clicking "Get certified" only calls the Server API if the last call was more than 2 minutes ago. Within the TTL window, cached signals from <code style="font-family:monospace;font-size:12px;color:var(--accent2)">sessionStorage</code> are used and validations still run. The TTL timestamp (<code style="font-family:monospace;font-size:12px;color:var(--accent2)">_lastServerApiCallAt</code>) is shared across all Server API calls — footer Smart Signals, review tab, and login all count.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">📋</span>
+            <div>
+              <div class="val-label">Review tab TTL <span class="val-badge ttl">2 minutes</span></div>
+              <div class="val-desc">Same 2-minute window. Additionally, if the certification test was submitted within 2 minutes of opening the review tab, the API call is skipped entirely — the cert submission signals are considered fresh enough.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">🔴</span>
+            <div>
+              <div class="val-label">Review submission <span class="val-badge threshold">Always fresh</span></div>
+              <div class="val-desc">The Server API call at review submission is mandatory — no TTL applies. This is because the review carries real monetary value ($20 gift card), and the fresh visitorId is compared against the session to detect session transfer attacks.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">💾</span>
+            <div>
+              <div class="val-label">Cache layers</div>
+              <div class="val-desc">
+                <span class="val-badge cached">L1 sessionStorage</span> Per-tab, cleared on tab close. Incognito switch clears it.<br/>
+                <span class="val-badge cached">L2 Express session</span> Server-side, persists across page navigation.<br/>
+                <span class="val-badge cached">L3 PostgreSQL devices</span> Persistent across restarts. <code style="font-family:monospace;font-size:12px;color:var(--accent2)">last_api_call_at</code> column enforces server-side TTL.
+              </div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">✅</span>
+            <div>
+              <div class="val-label">Cert submission device check <span class="val-badge active">JS agent only</span></div>
+              <div class="val-desc">At certification submission, a fresh JS agent call gets a new <code style="font-family:monospace;font-size:12px;color:var(--accent2)">visitorId</code> which is compared against the session value. No Server API call is made — cached suspect score from the tab-open call is used. This detects session cookie transfer to a different device.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="val-section">
+          <div class="val-section-title">Review deduplication</div>
+          <div class="val-row">
+            <span class="val-icon">🔒</span>
+            <div>
+              <div class="val-label">Check 1: Visitor ID <span class="val-badge active">Device-level</span></div>
+              <div class="val-desc">The <code style="font-family:monospace;font-size:12px;color:var(--accent2)">visitor_id</code> column in <code style="font-family:monospace;font-size:12px;color:var(--accent2)">reviews</code> has a UNIQUE constraint. Same device → blocked regardless of email used.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">📧</span>
+            <div>
+              <div class="val-label">Check 2: Email <span class="val-badge active">Identity-level</span></div>
+              <div class="val-desc">Email is checked case-insensitively across all reviews. Same email on a different device → blocked. Prevents gifting to the same person across multiple devices.</div>
+            </div>
+          </div>
+          <div class="val-row">
+            <span class="val-icon">🔀</span>
+            <div>
+              <div class="val-label">Check 3: Session mismatch <span class="val-badge active">Anti-hijack</span></div>
+              <div class="val-desc">The fresh <code style="font-family:monospace;font-size:12px;color:var(--accent2)">visitorId</code> at submission must match the session's <code style="font-family:monospace;font-size:12px;color:var(--accent2)">visitorId</code>. Detects session cookie copied to another device.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: API calls log -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">FPJS API calls — this session</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="panel-count" id="log-count">–</span>
+          <button class="refresh-btn" onclick="loadLog()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="panel-body" id="log-body">
+        <div class="panel-loading">Loading API call log…</div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <a href="/videos">← Back to app</a>
+  <span class="sep">|</span>
+  <a href="https://fingerprint.com" target="_blank">fingerprint.com</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com" target="_blank">Documentation</a>
+</footer>
+
+<script>
+  // ── Theme ──────────────────────────────────────────────────────────────────
+  function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-btn').textContent=t==='dark'?'🌙':'☀️'; localStorage.setItem('fp-theme',t); }
+  window.toggleTheme = ()=> applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
+  applyTheme(localStorage.getItem('fp-theme')||'dark');
+
+  // ── Load API log ───────────────────────────────────────────────────────────
+  async function loadLog() {
+    const body = document.getElementById('log-body');
+    body.innerHTML = '<div class="panel-loading">Loading…</div>';
+    try {
+      const data = await fetch('/api/fp-log').then(r => r.json());
+      if (!data.ok) { body.innerHTML = `<div class="panel-empty">Error: ${data.error || 'Not authenticated'}</div>`; return; }
+
+      const log = data.log || [];
+      document.getElementById('log-count').textContent = `${log.length} call${log.length!==1?'s':''}`;
+
+      if (!log.length) { body.innerHTML = '<div class="panel-empty">No API calls recorded yet this session.</div>'; return; }
+
+      body.innerHTML = log.map(entry => {
+        const time = new Date(entry.ts).toLocaleTimeString();
+        const isServer = entry.event?.includes('Server API');
+        const isError  = entry.event?.includes('ERROR');
+        const typeClass = isError ? 'error' : isServer ? 'server' : 'js';
+        const typeLabel = isError ? 'error' : isServer ? 'server' : 'js agent';
+        const vid = entry.visitorId ? entry.visitorId.slice(0,20)+'…' : '–';
+
+        // Build signal chips
+        const chips = [];
+        if (entry.incognito !== undefined) chips.push(`<span class="sig ${entry.incognito?'amber':'green'}">incognito:${entry.incognito?'yes':'no'}</span>`);
+        if (entry.vpn       !== undefined) chips.push(`<span class="sig ${entry.vpn?'amber':'green'}">vpn:${entry.vpn?'yes':'no'}</span>`);
+        if (entry.bot       !== undefined) chips.push(`<span class="sig ${entry.bot==='bad'?'red':'green'}">bot:${entry.bot||'–'}</span>`);
+        if (entry.suspectScore !== undefined) chips.push(`<span class="sig ${(entry.suspectScore||0)>=12?'red':'muted'}">suspect:${entry.suspectScore}</span>`);
+        if (entry.status    !== undefined) chips.push(`<span class="sig ${entry.status==='flagged'?'amber':entry.status==='approved'?'green':'muted'}">${entry.status}</span>`);
+
+        return `<div class="log-row">
+          <div>
+            <div class="log-time">${time}</div>
+            <span class="log-trigger ${typeClass}">${typeLabel}</span>
+          </div>
+          <div>
+            <div class="log-event">${entry.event || '–'}</div>
+            ${entry.uiTrigger ? `<div class="log-vid">trigger: ${entry.uiTrigger}</div>` : ''}
+            ${chips.length ? `<div style="margin-top:4px">${chips.join('')}</div>` : ''}
+            <div class="log-vid">${vid}</div>
+          </div>
+          <div></div>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      body.innerHTML = `<div class="panel-empty">Failed to load: ${e.message}</div>`;
+    }
+  }
+
+  loadLog();
+  // Auto-refresh every 15 seconds
+  setInterval(loadLog, 15000);
+</script>
+</body>
+</html>

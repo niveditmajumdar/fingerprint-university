@@ -1,0 +1,26 @@
+{
+  "name": "fp-university",
+  "version": "1.0.0",
+  "description": "Fingerprint University — device intelligence PoC",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:init": "psql $DATABASE_URL -f db/schema.sql",
+    "db:reset": "psql $DATABASE_URL -f db/reset.sql"
+  },
+  "dependencies": {
+    "@fingerprint/node-sdk": "*",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "express-session": "^1.18.0",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
