@@ -924,23 +924,52 @@ function switchTab(name,btn){
   btn.classList.add('active');
 
   if(name==='certify'){
-    // Use cached signals only — no freshIdentify(), no Server API call.
-    // Validation still runs against whatever is in fpCache from login or last Smart Signals call.
-    if(fpCache){
-      const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const ipTz       = fpCache._ipTimezone;
-      const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
-      const highRisk   = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
-      const vpnOn      = fpCache.vpn === true;
-      if(vpnOn || highRisk || tzMismatch){
-        const reasons = [];
-        if(vpnOn)      reasons.push('VPN usage detected');
-        if(highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
-        if(tzMismatch) reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
-        document.getElementById('suspect-score-badge').textContent=`Suspect score: ${fpCache.suspectScore||0}`;
-        document.getElementById('suspect-signals-list').innerHTML=reasons.map(r=>`<span class="sig-chip ${vpnOn||highRisk?'red':'amber'}">${r}</span>`).join('');
-        document.getElementById('suspect-modal').classList.add('open');
-      }
+    // If signals are stale (last sealed call > 2 minutes ago), fetch fresh sealed results.
+    // If signals are fresh (< 2 minutes), use cached fpCache directly.
+    const lastCall  = fpCache?._lastServerApiCallAt || 0;
+    const minsAgo   = lastCall > 0 ? (Date.now() - lastCall) / 60000 : Infinity;
+    const isStale   = minsAgo >= 2;
+
+    if (fpCache && isStale) {
+      console.log(`[FP] Cert tab: signals are ${Math.round(minsAgo)}min old — fetching fresh sealed result`);
+      // Fire-and-forget sealed call — don't block tab render, update chips when done
+      (async () => {
+        try {
+          const fresh = await freshIdentify();
+          if (!fresh.sealedResult) throw new Error('No sealed result');
+          const sigRes = await authFetch('/api/fp/signals', {
+            method: 'POST',
+            body: JSON.stringify({
+              sealed_result_base64: fresh.sealedResult,
+              event_id: fresh.eventId,
+              uiTrigger: 'certify-tab-click',
+            }),
+          }).then(r => r.json());
+          if (sigRes.ok && sigRes.signals) {
+            const s = sigRes.signals;
+            if (sigRes.fallback) showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API.', 'warn');
+            fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
+            fpCache.vpn          = s.vpn           === true;
+            fpCache.incognito    = s.incognito     === true;
+            fpCache.bot          = s.bot           === 'bad';
+            fpCache.confidence   = s.confidence    ?? fpCache.confidence;
+            fpCache._ipTimezone  = s.ipTimezone    || fpCache._ipTimezone;
+            fpCache._ipCountry   = s.ipCountry     || fpCache._ipCountry;
+            fpCache._lastServerApiCallAt = Date.now();
+            sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+            updateHeaderChips();
+            console.log(`[FP] Cert tab: sealed signals updated — suspect: ${s.suspectScore}, vpn: ${s.vpn}`);
+          }
+        } catch(e) {
+          console.warn('[FP cert tab sealed]', e.message);
+        }
+        // Run friction check after signals are updated
+        runCertTabValidation();
+      })();
+    } else {
+      if (fpCache) console.log(`[FP] Cert tab: signals fresh (${Math.round(minsAgo*60)}s ago) — using cache`);
+      // Signals are fresh — run validation immediately from cache
+      runCertTabValidation();
     }
     renderCertTab();
   } else if(name==='review'){
@@ -1336,6 +1365,25 @@ async function runSignalValidations(context) {
   return new Promise(resolve => {
     window._suspectModalResolve = resolve;
   });
+}
+
+// ── Cert tab friction check — runs from cached fpCache ────────────────────────
+function runCertTabValidation() {
+  if (!fpCache) return;
+  const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const ipTz       = fpCache._ipTimezone;
+  const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
+  const highRisk   = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
+  const vpnOn      = fpCache.vpn === true;
+  if (vpnOn || highRisk || tzMismatch) {
+    const reasons = [];
+    if (vpnOn)      reasons.push('VPN usage detected');
+    if (highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
+    if (tzMismatch) reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
+    document.getElementById('suspect-score-badge').textContent = `Suspect score: ${fpCache.suspectScore || 0}`;
+    document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r => `<span class="sig-chip ${vpnOn||highRisk?'red':'amber'}">${r}</span>`).join('');
+    document.getElementById('suspect-modal').classList.add('open');
+  }
 }
 
 // ── Submit flow ───────────────────────────────────────────────────────────────
@@ -1826,66 +1874,55 @@ async function submitReview() {
 
   btn.disabled = true; btn.textContent = 'Verifying device…';
 
-  // Steps 1+2: v4 fresh identify → send sealed result to server
-  // Skip if cert was submitted within 2 minutes — cached signals are fresh enough
+  // Always call sealed client results — every review submission gets fresh signals.
   let freshVisitorId = null;
-  const certSubmittedMs = state.certSubmittedAt ? new Date(state.certSubmittedAt).getTime() : 0;
-  const minsAgoCert     = certSubmittedMs > 0 ? (Date.now() - certSubmittedMs) / 60000 : Infinity;
-  const skipSealed      = minsAgoCert < 2;
+  try {
+    const fresh = await freshIdentify();
+    btn.textContent = 'Checking signals…';
 
-  if (skipSealed) {
-    console.log(`[FP] Review: cert ${Math.round(minsAgoCert*60)}s ago — skipping fresh identify, using cached signals`);
-    freshVisitorId = fpCache?.visitorId || null;
-  } else {
-    try {
-      const fresh = await freshIdentify();
-      btn.textContent = 'Checking signals…';
+    if (!fresh.sealedResult) throw new Error('No sealed result from agent');
 
-      if (!fresh.sealedResult) throw new Error('No sealed result from agent');
+    const sigRes = await authFetch('/api/fp/signals', {
+      method: 'POST',
+      body: JSON.stringify({
+        sealed_result_base64: fresh.sealedResult,
+        event_id: fresh.eventId,
+        uiTrigger: 'review-submit',
+      }),
+    }).then(r => r.json());
 
-      const sigRes = await authFetch('/api/fp/signals', {
-        method: 'POST',
-        body: JSON.stringify({
-          sealed_result_base64: fresh.sealedResult,
-          event_id: fresh.eventId,   // sent for Server API fallback if unseal fails
-          uiTrigger: 'review-submit',
-        }),
-      }).then(r => r.json());
+    if (!sigRes.ok) throw new Error(sigRes.error || 'Signals fetch failed');
 
-      if (!sigRes.ok) throw new Error(sigRes.error || 'Signals fetch failed');
-
-      // Show fallback toast if sealed results failed and Server API was used instead
-      if (sigRes.fallback) {
-        showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API for signals.', 'warn');
-      }
-
-      const s = sigRes.signals;
-      freshVisitorId = s.visitorId;
-
-      // Device change check
-      if (fpCache && freshVisitorId && fpCache.visitorId && freshVisitorId !== fpCache.visitorId) {
-        errEl.textContent = 'Device mismatch detected. Please log out and log in again.';
-        errEl.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card'; return;
-      }
-
-      // Update fpCache with sealed signals
-      if (fpCache) {
-        fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
-        fpCache.vpn          = s.vpn           === true;
-        fpCache.incognito    = s.incognito     === true;
-        fpCache.bot          = s.bot           === 'bad';
-        fpCache.confidence   = s.confidence    ?? fpCache.confidence;
-        fpCache._ipTimezone  = s.ipTimezone    || fpCache._ipTimezone;
-        fpCache._ipCountry   = s.ipCountry     || fpCache._ipCountry;
-        fpCache._lastServerApiCallAt = Date.now();
-        sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
-        updateHeaderChips();
-      }
-    } catch(e) {
-      console.warn('[FP review sealed signals]', e.message);
-      freshVisitorId = fpCache?.visitorId || null;
+    if (sigRes.fallback) {
+      showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API for signals.', 'warn');
     }
+
+    const s = sigRes.signals;
+    freshVisitorId = s.visitorId;
+
+    // Device change check
+    if (fpCache && freshVisitorId && fpCache.visitorId && freshVisitorId !== fpCache.visitorId) {
+      errEl.textContent = 'Device mismatch detected. Please log out and log in again.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card'; return;
+    }
+
+    // Update fpCache with sealed signals
+    if (fpCache) {
+      fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
+      fpCache.vpn          = s.vpn           === true;
+      fpCache.incognito    = s.incognito     === true;
+      fpCache.bot          = s.bot           === 'bad';
+      fpCache.confidence   = s.confidence    ?? fpCache.confidence;
+      fpCache._ipTimezone  = s.ipTimezone    || fpCache._ipTimezone;
+      fpCache._ipCountry   = s.ipCountry     || fpCache._ipCountry;
+      fpCache._lastServerApiCallAt = Date.now();
+      sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+      updateHeaderChips();
+    }
+  } catch(e) {
+    console.warn('[FP review sealed signals]', e.message);
+    freshVisitorId = fpCache?.visitorId || null;
   }
 
   btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card';
