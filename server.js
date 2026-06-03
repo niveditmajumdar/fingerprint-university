@@ -666,6 +666,35 @@ app.post('/api/fp/identify', async (req, res) => {
 
     req.session.visitorId = visitorId;
 
+    // ── Email inheritance on device re-use ────────────────────────────────────
+    // If this visitorId was previously used by a different account, copy those
+    // video_views and certifications rows to the current user's email.
+    // This ensures that when the current user later logs in on a new device/browser,
+    // the email-based lookup still finds the correct counts.
+    try {
+      const currentEmail = req.session.email.toLowerCase().trim();
+
+      // Copy video views: update any rows for this visitorId that have a different email
+      await db.query(`
+        UPDATE video_views
+        SET email = $1
+        WHERE visitor_id = $2
+          AND LOWER(email) != $1
+      `, [currentEmail, visitorId]);
+
+      // Also ensure there's a cert row tied to this email if one exists for the visitorId
+      await db.query(`
+        UPDATE certifications
+        SET email = $1
+        WHERE visitor_id = $2
+          AND LOWER(email) != $1
+      `, [currentEmail, visitorId]);
+
+      console.log(`[login] email inheritance applied — visitorId: ${visitorId}, email: ${currentEmail}`);
+    } catch(e) {
+      console.warn('[login] email inheritance failed (non-fatal):', e.message);
+    }
+
     // Persist signals to smart_signals table when we have them
     if (usedSealed && signals) {
       try {
