@@ -316,22 +316,9 @@
     }catch(e){ return null; }
   }
 
-  async function init(){
-    const fp=await identify();if(!fp?.visitorId)return;
-    try{
-      const res=await fetch(`/api/contact/count?visitorId=${encodeURIComponent(fp.visitorId)}`).then(r=>r.json());
-      if(res.ok&&res.count>=3){
-        document.getElementById('form-wrap').style.display='none';
-        const w=document.getElementById('repeat-warning');w.style.display='block';
-        w.innerHTML=`<div style="text-align:center;padding:16px 0">
-          <div style="font-size:36px;margin-bottom:12px">📬</div>
-          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--amber)">You've already submitted ${res.count} request${res.count!==1?'s':''}</h3>
-          <p style="font-size:15px;color:var(--muted);line-height:1.65">It seems you've already submitted a request more than 3 times. Please be patient — we'll reach out to you within 1 business day.</p>
-        </div>`;
-      }
-    }catch(e){}
-  }
-  init();
+  // No page-load identification — agent is loaded lazily on submit only.
+  // This avoids a billable Fingerprint API call for every visitor who lands
+  // on the contact page but never submits the form.
 
   window.submitContact=async function(){
     const name=document.getElementById('c-name').value.trim();
@@ -351,17 +338,16 @@
     }else{showFieldError('field-email','err-email',false);}
     if(hasError)return;
 
-    btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Verifying device…';
+    btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Verifying device…';
 
-    // Use fpResult from page-load identify() — that requestId is already processed by the
-    // Server API. Only re-identify if we have no requestId at all.
-    // IMPORTANT: don't check visitorId here — it's always null when sealed key is active.
-    let fp = fpResult;
+    // Identify now — on submit, not on page load.
+    // The agent loads lazily here; first call takes ~300ms, subsequent calls are instant.
+    const fp = await identify();
     if (!fp?.requestId) {
-      console.log('[FP] No fpResult from init — calling identify() now');
-      fp = await identify();
+      console.warn('[FP] identify() returned no requestId — submitting without device signals');
+    } else {
+      console.log('[FP] Contact identified — requestId:', fp.requestId);
     }
-    console.log('[FP] Contact using requestId:', fp?.requestId, '| visitorId from agent:', fp?.visitorId || '(empty — will get from Server API)');
 
     // Use sealed result to get authoritative signals — no Server API call needed.
     // /api/fp/signals/public accepts sealed_result_base64, unseals server-side,
@@ -406,6 +392,24 @@
       } catch(e) { console.warn('[FP sealed signals error]', e.message); }
     } else {
       console.warn('[FP] No sealed result available — signals will be limited');
+    }
+
+    // Duplicate submission check — now that we have visitorId from sealed result
+    if (fp?.visitorId) {
+      try {
+        const countRes = await fetch(`/api/contact/count?visitorId=${encodeURIComponent(fp.visitorId)}`).then(r => r.json());
+        if (countRes.ok && countRes.count >= 3) {
+          document.getElementById('form-wrap').style.display = 'none';
+          const w = document.getElementById('repeat-warning'); w.style.display = 'block';
+          w.innerHTML = `<div style="text-align:center;padding:16px 0">
+            <div style="font-size:36px;margin-bottom:12px">📬</div>
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--amber)">You've already submitted ${countRes.count} request${countRes.count !== 1 ? 's' : ''}</h3>
+            <p style="font-size:15px;color:var(--muted);line-height:1.65">You've already submitted a request more than 3 times. Please be patient — we'll reach out to you within 1 business day.</p>
+          </div>`;
+          btn.disabled = false; btn.textContent = 'Request team training →';
+          return;
+        }
+      } catch(e) { console.warn('[FP] count check failed', e.message); }
     }
 
     // Validations — friction only
