@@ -721,6 +721,7 @@ if (hash !== expected) return res.status(401).send();</div></div>
 <script>
 // Public key injected by server at request time (same mechanism as login.html)
 const FP_PUBLIC_KEY = '__FP_PUBLIC_KEY__';
+const FP_URL_PATH = '__FP_URL_PATH__';
 
 // ── Toast notifications ───────────────────────────────────────────────────────
 function showToast(title, message, type = 'warn', duration = 5000) {
@@ -826,8 +827,12 @@ window.addEventListener('pageshow', async (e) => {
 let fpAgent = null;
 async function getFpAgent() {
   if (fpAgent) return fpAgent;
-  const mod = await import(`https://fpjscdn.net/v4/${FP_PUBLIC_KEY}`);
-  fpAgent = mod.start({ apiKey: FP_PUBLIC_KEY }); // v4: start() is synchronous
+  const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
+  fpAgent = FP.start({
+        apiKey:    FP_PUBLIC_KEY,
+        region: "ap",
+        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
+      });
   return fpAgent;
 }
 
@@ -882,7 +887,7 @@ const VALIDATION = {
   // Suspect score threshold: triggers step-up verification modal.
   // Score is a weighted sum of signals (see weights below).
   // Raise this to be more permissive, lower it to be stricter.
-  SUSPECT_THRESHOLD: 12,
+  SUSPECT_THRESHOLD: '__SUSPECT_THRESHOLD__',
 
   // Individual signal weights used to compute the CLIENT-SIDE suspect score.
   // (The Server API returns an authoritative score when FP_API_KEY is set.)
