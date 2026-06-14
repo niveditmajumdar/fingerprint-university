@@ -402,27 +402,6 @@
   let fpResult  = null;
   let fpAgent   = null;   // cached agent so we don't reload it
 
-  // ── Pre-load the FP agent silently on page load (faster on click) ──────────
-  // We load the agent but do NOT call fp.get() yet — that happens on Sign In.
-  // This means incognito detection and other signals are captured at click time,
-  // reflecting the actual browser state when the user attempts to authenticate.
-
-//   Fingerprint.start({
-//   apiKey: "wQpKs7rwBoqWAjcnN3kt",
-//   region: "ap",
-//   endpoints: "https://metrics.fingerprint-university.com"
-// })
-  async function preloadAgent() {
-    try {
-      const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
-      fpAgent = FP.start({
-        apiKey:   FP_PUBLIC_KEY,
-        region: "ap",
-        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
-      });
-    } catch (e) { /* non-blocking */ }
-  }
-
   // ── Run identification (called on Sign In click) ───────────────────────────
   async function identify() {
     const dotEl = document.getElementById('fp-dot');
@@ -815,7 +794,6 @@
   };
 
   // Pre-load FP agent silently so Sign In click is fast
-  // preloadAgent();
 </script>
 
 <!-- ── VPN / timezone mismatch modal (persistent — must be explicitly dismissed) ── -->
