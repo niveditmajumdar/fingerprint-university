@@ -288,7 +288,7 @@
       // Import from subdomain URL — pattern from Fingerprint docs:
       // import('https://metrics.yourwebsite.com/web/v4/PUBLIC_API_KEY')
       //   .then(Fingerprint => Fingerprint.start({ endpoints: 'https://metrics.yourwebsite.com' }))
-      const FP = await import(`${FP_URL_PATH}/v4/${FP_PUBLIC_KEY}`);
+      const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
       fpAgent = FP.start({
         apiKey:    FP_PUBLIC_KEY,
         region: "ap",
