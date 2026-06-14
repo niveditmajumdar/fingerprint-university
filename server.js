@@ -33,6 +33,7 @@ if (!process.env.FP_PUBLIC_KEY)  console.warn('\n⚠️  FP_PUBLIC_KEY not set i
 if (!process.env.FP_API_KEY)     console.warn('⚠️  FP_API_KEY not set — Server API fallback will not work\n');
 if (!process.env.FP_SEALED_KEY)  console.warn('⚠️  FP_SEALED_KEY not set — sealed results will fall back to Server API\n');
 if (!process.env.DATABASE_URL)   console.warn('⚠️  DATABASE_URL not set — database features will not work\n');
+if (!process.env.SUSPECT_THRESHOLD)   console.warn('⚠️  SUSPECT_THRESHOLD not set — validation features will not work\n');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURATION
@@ -122,7 +123,8 @@ function serveWithKey(res, filename) {
   const fpUrlPath = process.env.FP_URL_PATH || 'https://fpjscdn.net';
   const html = fs.readFileSync(path.join(__dirname, 'public', filename), 'utf8')
     .replace(/__FP_PUBLIC_KEY__/g, process.env.FP_PUBLIC_KEY || '')
-    .replace(/__FP_URL_PATH__/g,   fpUrlPath);
+    .replace(/__FP_URL_PATH__/g,   fpUrlPath)
+    .replace(/__SUSPECT_THRESHOLD__/g,   process.env.SUSPECT_THRESHOLD);
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 }
