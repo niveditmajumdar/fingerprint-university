@@ -28,6 +28,7 @@ try {
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+if (!process.env.FP_URL_PATH)  console.warn('\n⚠️  FP_URL_PATH not set in .env\n');
 if (!process.env.FP_PUBLIC_KEY)  console.warn('\n⚠️  FP_PUBLIC_KEY not set in .env\n');
 if (!process.env.FP_API_KEY)     console.warn('⚠️  FP_API_KEY not set — Server API fallback will not work\n');
 if (!process.env.FP_SEALED_KEY)  console.warn('⚠️  FP_SEALED_KEY not set — sealed results will fall back to Server API\n');
@@ -115,8 +116,13 @@ function requireAuthAndSession(req, res, next) {
 }
 
 function serveWithKey(res, filename) {
+  // FP_URL_PATH: base URL for the Fingerprint JS agent.
+  // Set to your custom subdomain (e.g. https://metrics.fingerprint-university.com)
+  // or leave blank to fall back to the default Fingerprint CDN.
+  const fpUrlPath = process.env.FP_URL_PATH || 'https://fpjscdn.net';
   const html = fs.readFileSync(path.join(__dirname, 'public', filename), 'utf8')
-    .replace(/__FP_PUBLIC_KEY__/g, process.env.FP_PUBLIC_KEY || '');
+    .replace(/__FP_PUBLIC_KEY__/g, process.env.FP_PUBLIC_KEY || '')
+    .replace(/__FP_URL_PATH__/g,   fpUrlPath);
   res.setHeader('Content-Type', 'text/html');
   res.send(html);
 }
