@@ -243,6 +243,7 @@
 
 <script type="module">
   const FP_PUBLIC_KEY = '__FP_PUBLIC_KEY__';
+  const FP_URL_PATH = '__FP_URL_PATH__';
 
   function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-btn').textContent=t==='dark'?'🌙':'☀️'; localStorage.setItem('fp-theme',t); }
   window.toggleTheme = () => applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
@@ -284,7 +285,7 @@
   let fpResult=null,fpAgent=null;
   async function loadAgent(){
     try{
-      const FP = await import(`https://fpjscdn.net/v4/${FP_PUBLIC_KEY}`);
+      const FP = await import(`${FP_URL_PATH}${FP_PUBLIC_KEY}`);
       fpAgent = FP.start({ apiKey: FP_PUBLIC_KEY }); // v4: synchronous start()
       return fpAgent;
     }catch(e){ return null; }
