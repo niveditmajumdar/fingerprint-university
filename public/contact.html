@@ -244,6 +244,7 @@
 <script type="module">
   const FP_PUBLIC_KEY = '__FP_PUBLIC_KEY__';
   const FP_URL_PATH = '__FP_URL_PATH__';
+   const SUSPECT_THRESHOLD='__SUSPECT_THRESHOLD__';
 
   function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-btn').textContent=t==='dark'?'🌙':'☀️'; localStorage.setItem('fp-theme',t); }
   window.toggleTheme = () => applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
@@ -255,7 +256,7 @@
     if(f&&e){f.classList.toggle('has-error',show);e.style.display=show?'block':'none';}
   }
 
-  const SUSPECT_THRESHOLD=12;
+ 
   function showToast(title, message, type = 'warn', duration = 5000) {
     const icon = type === 'warn' ? '⚠️' : type === 'info' ? 'ℹ️' : '❌';
     const toast = document.createElement('div');
