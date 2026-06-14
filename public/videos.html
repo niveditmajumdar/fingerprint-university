@@ -1453,17 +1453,9 @@ async function submitCert(){
 
   btn.disabled = false; btn.textContent = 'Submit test';
 
-  // Step 3: Validation check — adds friction but does NOT block
+  // Step 3: Validation check — friction only, user can proceed after acknowledging
   const canProceed = await runSignalValidations('certification submission');
   if (!canProceed) return;
-
-  // Step 4: If suspect score is high enough, show verify-code modal (harder gate)
-  if ((fpCache?.suspectScore || 0) >= SUSPECT_THRESHOLD || (VALIDATION.VPN_BLOCKS_CERT_SUBMIT && fpCache?.vpn === true)) {
-    pauseTimer();
-    pendingAnswers = [...quizAnswers];
-    showVerifyModal();
-    return;
-  }
 
   await doSubmitToServer(quizAnswers, freshVisitorId);
 }
