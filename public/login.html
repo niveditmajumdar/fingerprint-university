@@ -391,6 +391,8 @@
 
 <script type="module">
   const FP_PUBLIC_KEY = '__FP_PUBLIC_KEY__';
+  const FP_URL_PATH = '__FP_URL_PATH__';
+  const SUSPECT_THRESHOLD = '__SUSPECT_THRESHOLD__';
 
   // ── Theme ──────────────────────────────────────────────────────────────────
   function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); document.getElementById('theme-btn').textContent = t === 'dark' ? '🌙' : '☀️'; localStorage.setItem('fp-theme', t); }
@@ -404,11 +406,20 @@
   // We load the agent but do NOT call fp.get() yet — that happens on Sign In.
   // This means incognito detection and other signals are captured at click time,
   // reflecting the actual browser state when the user attempts to authenticate.
+
+//   Fingerprint.start({
+//   apiKey: "wQpKs7rwBoqWAjcnN3kt",
+//   region: "ap",
+//   endpoints: "https://metrics.fingerprint-university.com"
+// })
   async function preloadAgent() {
     try {
-      const FP = await import(`https://fpjscdn.net/v4/${FP_PUBLIC_KEY}`);
-      // v4: start() is SYNCHRONOUS — no await needed
-      fpAgent = FP.start({ apiKey: FP_PUBLIC_KEY });
+      const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
+      fpAgent = FP.start({
+        apiKey:   FP_PUBLIC_KEY,
+        region: "ap",
+        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
+      });
     } catch (e) { /* non-blocking */ }
   }
 
@@ -421,9 +432,12 @@
 
     try {
       if (!fpAgent) {
-        const FP = await import(`https://fpjscdn.net/v4/${FP_PUBLIC_KEY}`);
-        // v4: start() is synchronous, returns agent directly
-        fpAgent = FP.start({ apiKey: FP_PUBLIC_KEY });
+        const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
+      fpAgent = FP.start({
+        apiKey:   FP_PUBLIC_KEY,
+        region: "ap",
+        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
+      });
       }
 
       const fingerprint = await fpAgent.get();
@@ -489,28 +503,6 @@
   // Fires a popup if:
   //   (a) VPN is explicitly detected by Fingerprint, OR
   //   (b) The IP geolocation timezone does not match the browser's reported timezone
-  function checkVpnAndTimezone(fp, raw) {
-    const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // Get IP location timezone from Fingerprint ipInfo if available
-    const ipTimezone = raw?.ipInfo?.v4?.geolocation?.timezone
-                    || raw?.ipInfo?.v6?.geolocation?.timezone
-                    || null;
-
-    const vpnDetected = fp.vpn;
-    const tzMismatch  = ipTimezone && !sameUtcOffset(ipTimezone, browserTz);
-
-    if (vpnDetected || tzMismatch) {
-      const reasons = [];
-      if (vpnDetected)  reasons.push('VPN usage detected by Fingerprint');
-      if (tzMismatch)   reasons.push(`IP timezone (${ipTimezone}, UTC${offsetLabel(ipTimezone)}) does not match browser timezone (${browserTz}, UTC${offsetLabel(browserTz)})`);
-
-      document.getElementById('vpn-reason-list').innerHTML =
-        reasons.map(r => `<li style="margin-bottom:4px">• ${r}</li>`).join('');
-      document.getElementById('vpn-modal').classList.add('open');
-    }
-  }
-
   // ── Login flow ─────────────────────────────────────────────────────────────
   window.doLogin = async function() {
     const btn   = document.getElementById('login-btn');
@@ -633,7 +625,7 @@
 
         // Update signal pills with all server-verified values
         const conf = fpResult.confidence;
-        const suspectCls = fpResult.suspectScore >= 12 ? 'red' : fpResult.suspectScore >= 6 ? 'amber' : 'green';
+        const suspectCls = fpResult.suspectScore >= SUSPECT_THRESHOLD ? 'red' : fpResult.suspectScore >= 6 ? 'amber' : 'green';
         document.getElementById('signals-grid').innerHTML = `
           <div class="sig-pill ${conf > 0.7 ? 'green' : 'amber'}"><span class="dot"></span>conf: ${(conf*100).toFixed(0)}%</div>
           <div class="sig-pill ${fpResult.incognito ? 'amber' : 'green'}"><span class="dot"></span>incognito: ${fpResult.incognito ? 'yes' : 'no'}</div>
@@ -643,16 +635,12 @@
           <div class="sig-pill green"><span class="dot"></span>🔒 sealed & verified</div>
         `;
 
-        // VPN / timezone check
-        const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const ipTz       = fpResult._ipTimezone;
-        const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
-        if (fpResult.vpn || tzMismatch) {
-          const reasons = [];
-          if (fpResult.vpn)  reasons.push('VPN usage confirmed (sealed result)');
-          if (tzMismatch)    reasons.push(`IP timezone (${ipTz}, UTC${offsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${offsetLabel(browserTz)})`);
+        // VPN check — use vpn: true smart signal directly from sealed result.
+        // This incorporates timezone_mismatch, public_vpn, relay, and OS checks
+        // server-side — no need to recompute timezone comparison in the browser.
+        if (fpResult.vpn) {
           document.getElementById('vpn-reason-list').innerHTML =
-            reasons.map(r => `<li style="margin-bottom:4px">• ${r}</li>`).join('');
+            '<li style="margin-bottom:4px">• VPN usage confirmed (sealed result)</li>';
           document.getElementById('vpn-modal').classList.add('open');
           await vpnModalDismissed();
         }
@@ -681,15 +669,10 @@
               <div class="sig-pill ${fpResult.bot ? 'red' : 'green'}"><span class="dot"></span>bot: ${fpResult.bot ? 'detected' : 'none'}</div>
               <div class="sig-pill ${fpResult.vpn ? 'amber' : 'green'}"><span class="dot"></span>vpn: ${fpResult.vpn ? 'detected' : 'none'}</div>
             `;
-            const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const ipTz       = fpResult._ipTimezone;
-            const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
-            if (fpResult.vpn || tzMismatch) {
-              const reasons = [];
-              if (fpResult.vpn)  reasons.push('VPN usage confirmed by Fingerprint Server API');
-              if (tzMismatch)    reasons.push(`IP timezone (${ipTz}, UTC${offsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${offsetLabel(browserTz)})`);
+            // VPN check — use vpn: true smart signal from Server API fallback
+            if (fpResult.vpn) {
               document.getElementById('vpn-reason-list').innerHTML =
-                reasons.map(r => `<li style="margin-bottom:4px">• ${r}</li>`).join('');
+                '<li style="margin-bottom:4px">• VPN usage confirmed by Fingerprint Server API</li>';
               document.getElementById('vpn-modal').classList.add('open');
               await vpnModalDismissed();
             }
@@ -714,37 +697,6 @@
   // ── Timezone helpers ──────────────────────────────────────────────────────
   // Convert a timezone name to its current UTC offset in minutes.
   // Using a fixed reference date ensures DST is accounted for consistently.
-  function tzOffsetMinutes(tz) {
-    try {
-      const now = new Date();
-      // Format the date in the target timezone and in UTC, then diff
-      const local = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-      const utc   = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-      return Math.round((local - utc) / 60000);
-    } catch (e) { return null; }
-  }
-
-  // Returns true if two timezone names resolve to the same UTC offset right now.
-  // This handles aliases: Asia/Kolkata === Asia/Calcutta (both +330 min),
-  // America/New_York === EST, etc.
-  function sameUtcOffset(tz1, tz2) {
-    const o1 = tzOffsetMinutes(tz1);
-    const o2 = tzOffsetMinutes(tz2);
-    if (o1 === null || o2 === null) return false;
-    return o1 === o2;
-  }
-
-  // Format an offset as "+05:30" / "-07:00" for display
-  function offsetLabel(tz) {
-    const mins = tzOffsetMinutes(tz);
-    if (mins === null) return '?';
-    const sign = mins >= 0 ? '+' : '-';
-    const abs  = Math.abs(mins);
-    const h    = String(Math.floor(abs / 60)).padStart(2, '0');
-    const m    = String(abs % 60).padStart(2, '0');
-    return `${sign}${h}:${m}`;
-  }
-
   // ── Modal dismissal promise ────────────────────────────────────────────────
   // Navigation is blocked until this resolves — the user must click a button.
   let _vpnDismissResolve = null;
@@ -863,7 +815,7 @@
   };
 
   // Pre-load FP agent silently so Sign In click is fast
-  preloadAgent();
+  // preloadAgent();
 </script>
 
 <!-- ── VPN / timezone mismatch modal (persistent — must be explicitly dismissed) ── -->
