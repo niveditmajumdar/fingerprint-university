@@ -285,10 +285,20 @@
   let fpResult=null,fpAgent=null;
   async function loadAgent(){
     try{
-      const FP = await import(`${FP_URL_PATH}${FP_PUBLIC_KEY}`);
-      fpAgent = FP.start({ apiKey: FP_PUBLIC_KEY }); // v4: synchronous start()
+      // Import from subdomain URL — pattern from Fingerprint docs:
+      // import('https://metrics.yourwebsite.com/web/v4/PUBLIC_API_KEY')
+      //   .then(Fingerprint => Fingerprint.start({ endpoints: 'https://metrics.yourwebsite.com' }))
+      const FP = await import(`${FP_URL_PATH}/v4/${FP_PUBLIC_KEY}`);
+      fpAgent = FP.start({
+        apiKey:    FP_PUBLIC_KEY,
+        region: "ap",
+        endpoint:  FP_URL_PATH,   // routes identification calls through your subdomain
+      });
       return fpAgent;
-    }catch(e){ return null; }
+    }catch(e){
+      console.error('[FP] Agent load failed:', e.message);
+      return null;
+    }
   }
   async function identify(){
     const agent=fpAgent||await loadAgent();if(!agent)return null;
