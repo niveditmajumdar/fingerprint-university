@@ -292,7 +292,7 @@
       fpAgent = FP.start({
         apiKey:    FP_PUBLIC_KEY,
         region: "ap",
-        endpoint:  FP_URL_PATH,   // routes identification calls through your subdomain
+        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
       });
       return fpAgent;
     }catch(e){
