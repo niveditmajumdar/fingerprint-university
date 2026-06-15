@@ -955,6 +955,7 @@ function switchTab(name,btn){
             if (sigRes.fallback) showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API.', 'warn');
             fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
             fpCache.vpn          = s.vpn           === true;
+            fpCache.vpnMethods   = s.vpnMethods    ?? fpCache.vpnMethods;
             fpCache.incognito    = s.incognito     === true;
             fpCache.bot          = s.bot           === 'bad';
             fpCache.confidence   = s.confidence    ?? fpCache.confidence;
@@ -988,32 +989,6 @@ function switchDoc(name,item){
   document.querySelectorAll('.docs-nav-item').forEach(i=>i.classList.remove('active'));
   document.getElementById('doc-'+name).classList.add('active');
   item.classList.add('active');
-}
-
-// ── Timezone helpers (offset-based comparison, handles IANA aliases) ──────────
-// Asia/Kolkata and Asia/Calcutta both resolve to +330 min → not a mismatch.
-function tzOffsetMinutes(tz) {
-  try {
-    const now   = new Date();
-    const local = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-    const utc   = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
-    return Math.round((local - utc) / 60000);
-  } catch(e) { return null; }
-}
-function sameUtcOffset(tz1, tz2) {
-  const o1 = tzOffsetMinutes(tz1);
-  const o2 = tzOffsetMinutes(tz2);
-  if(o1 === null || o2 === null) return false;
-  return o1 === o2;
-}
-function tzOffsetLabel(tz) {
-  const mins = tzOffsetMinutes(tz);
-  if(mins === null) return '?';
-  const sign = mins >= 0 ? '+' : '-';
-  const abs  = Math.abs(mins);
-  const h    = String(Math.floor(abs / 60)).padStart(2, '0');
-  const m    = String(abs % 60).padStart(2, '0');
-  return `${sign}${h}:${m}`;
 }
 
 // ── Suspect score ─────────────────────────────────────────────────────────────
@@ -1342,31 +1317,30 @@ function jumpToQuestion(idx){
 async function runSignalValidations(context) {
   if (!fpCache) return true;
 
-  const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const ipTz       = fpCache._ipTimezone;
-  const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
-  const highRisk   = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
-  const vpnOn      = fpCache.vpn === true;
-  const botOn      = fpCache.bot === true;
+  // VPN: use vpn: true smart signal (combines timezone_mismatch, public_vpn, relay, os_mismatch)
+  // os_mismatch: separately surfaced when network OS doesn't match device OS
+  // No manual timezone comparison — Fingerprint's signals are authoritative
+  const highRisk  = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
+  const vpnOn     = fpCache.vpn === true;
+  const osMismatch = fpCache.vpnMethods?.os_mismatch === true;
+  const botOn     = fpCache.bot === true;
 
-  if (!vpnOn && !highRisk && !tzMismatch && !botOn) return true; // clean — proceed immediately
+  if (!vpnOn && !osMismatch && !highRisk && !botOn) return true; // clean — proceed immediately
 
   const reasons = [];
   if (vpnOn)      reasons.push(`VPN usage detected`);
+  if (osMismatch) reasons.push(`OS mismatch detected — network OS does not match device OS`);
   if (botOn)      reasons.push(`Automated browser detected`);
   if (highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
-  if (tzMismatch) reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) doesn't match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
 
   // Show the suspect modal with a "Proceed anyway" option
   document.getElementById('suspect-score-badge').textContent = `Suspect score: ${fpCache.suspectScore || 0}`;
   document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r =>
     `<span class="sig-chip ${vpnOn||botOn||highRisk?'red':'amber'}">${r}</span>`).join('');
 
-  // Swap the modal body to friction mode (Proceed + Dismiss, no hard block)
   document.getElementById('suspect-modal-context').textContent = context;
   document.getElementById('suspect-modal').classList.add('open');
 
-  // Return a promise that resolves when user clicks Proceed or Dismiss
   return new Promise(resolve => {
     window._suspectModalResolve = resolve;
   });
@@ -1375,16 +1349,14 @@ async function runSignalValidations(context) {
 // ── Cert tab friction check — runs from cached fpCache ────────────────────────
 function runCertTabValidation() {
   if (!fpCache) return;
-  const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const ipTz       = fpCache._ipTimezone;
-  const tzMismatch = ipTz && !sameUtcOffset(ipTz, browserTz);
-  const highRisk   = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
-  const vpnOn      = fpCache.vpn === true;
-  if (vpnOn || highRisk || tzMismatch) {
+  const highRisk  = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
+  const vpnOn     = fpCache.vpn === true;
+  const osMismatch = fpCache.vpnMethods?.os_mismatch === true;
+  if (vpnOn || osMismatch || highRisk) {
     const reasons = [];
     if (vpnOn)      reasons.push('VPN usage detected');
+    if (osMismatch) reasons.push('OS mismatch detected — network OS does not match device OS');
     if (highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
-    if (tzMismatch) reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
     document.getElementById('suspect-score-badge').textContent = `Suspect score: ${fpCache.suspectScore || 0}`;
     document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r => `<span class="sig-chip ${vpnOn||highRisk?'red':'amber'}">${r}</span>`).join('');
     document.getElementById('suspect-modal').classList.add('open');
@@ -1437,6 +1409,7 @@ async function submitCert(){
     if (fpCache) {
       fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
       fpCache.vpn          = s.vpn           === true;
+      fpCache.vpnMethods   = s.vpnMethods    ?? fpCache.vpnMethods;
       fpCache.incognito    = s.incognito     === true;
       fpCache.bot          = s.bot           === 'bad';
       fpCache.confidence   = s.confidence    ?? fpCache.confidence;
@@ -1499,10 +1472,24 @@ async function doSubmitToServer(answers, freshVisitorId){
   const btn = document.getElementById('cert-submit-btn');
   if(btn){ btn.disabled = true; btn.textContent = 'Submitting…'; }
 
+  // Scoring diagnostic — log exactly what is being sent and what the correct answers are
+  const CORRECT_ANSWERS = [1, 0, 2, 1, 3]; // must match server.js CORRECT array
+  console.log('[CERT] Submitting answers:', answers);
+  console.log('[CERT] Correct answers:   ', CORRECT_ANSWERS);
+  const clientScore = answers.reduce((n, a, i) => {
+    const correct = a === CORRECT_ANSWERS[i];
+    console.log(`[CERT] Q${i+1}: answered=${a}, correct=${CORRECT_ANSWERS[i]}, match=${correct}`);
+    return n + (correct ? 1 : 0);
+  }, 0);
+  console.log(`[CERT] Client-computed score: ${clientScore}/${answers.length}`);
+  console.log('[CERT] visitorIdAtSubmission:', freshVisitorId || fpCache?.visitorId);
+
   const res = await authFetch('/api/cert/submit', {
     method: 'POST',
     body: JSON.stringify({ answers, visitorIdAtSubmission: freshVisitorId || fpCache?.visitorId })
   }).then(r => r.json());
+
+  console.log('[CERT] Server response:', res);
 
   if(btn){ btn.disabled = false; btn.textContent = 'Submit test'; }
 
@@ -1630,13 +1617,11 @@ async function openSmartSignals(){
         console.log(`[FP] Suspect score: ${oldScore} → ${newScore}`);
       }
 
-      // VPN validation: if VPN detected, trigger step-up immediately
+      // VPN validation: use vpn: true + os_mismatch smart signals only
       if (fpCache.vpn === true) {
-        const reasons    = ['VPN usage confirmed by Fingerprint Server API'];
-        const browserTz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const ipTz       = fpCache._ipTimezone;
-        if (ipTz && !sameUtcOffset(ipTz, browserTz)) {
-          reasons.push(`IP timezone (${ipTz}, UTC${tzOffsetLabel(ipTz)}) does not match browser timezone (${browserTz}, UTC${tzOffsetLabel(browserTz)})`);
+        const reasons = ['VPN usage confirmed by Fingerprint Server API'];
+        if (fpCache.vpnMethods?.os_mismatch === true) {
+          reasons.push('OS mismatch detected — network OS does not match device OS');
         }
         document.getElementById('suspect-score-badge').textContent = `VPN detected — suspect score: ${fpCache.suspectScore}`;
         document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r =>
@@ -1908,6 +1893,7 @@ async function submitReview() {
     if (fpCache) {
       fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
       fpCache.vpn          = s.vpn           === true;
+      fpCache.vpnMethods   = s.vpnMethods    ?? fpCache.vpnMethods;
       fpCache.incognito    = s.incognito     === true;
       fpCache.bot          = s.bot           === 'bad';
       fpCache.confidence   = s.confidence    ?? fpCache.confidence;
