@@ -791,11 +791,12 @@ window.addEventListener('pageshow', async (e) => {
 // Create a new un-cached agent execution every time it is requested
 async function getFpAgent() {
   const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
+  const endpointWithRegion = `${FP_URL_PATH}?region=ap`;
   // Returning the start() call freshly evaluates the live browser state (like open DevTools)
   return FP.start({
         apiKey:    FP_PUBLIC_KEY,
         region: "ap",
-        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
+        endpoints:  endpointWithRegion,   // routes identification calls through your subdomain
       });
 }
 
