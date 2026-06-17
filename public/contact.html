@@ -290,10 +290,11 @@
       // import('https://metrics.yourwebsite.com/web/v4/PUBLIC_API_KEY')
       //   .then(Fingerprint => Fingerprint.start({ endpoints: 'https://metrics.yourwebsite.com' }))
       const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
+      const endpointWithRegion = `${FP_URL_PATH}?region=ap`;
       fpAgent = FP.start({
         apiKey:    FP_PUBLIC_KEY,
         region: "ap",
-        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
+        endpoints:  endpointWithRegion,   // routes identification calls through your subdomain
       });
       return fpAgent;
     }catch(e){
