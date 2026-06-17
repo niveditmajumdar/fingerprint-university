@@ -788,21 +788,22 @@ window.addEventListener('pageshow', async (e) => {
   }
 });
 
-// Shared FP agent instance — v4, loaded once, reused for all fresh identification calls
-let fpAgent = null;
+// Create a new un-cached agent execution every time it is requested
 async function getFpAgent() {
-  if (fpAgent) return fpAgent;
   const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
-  fpAgent = FP.start({
+  // Returning the start() call freshly evaluates the live browser state (like open DevTools)
+  return FP.start({
         apiKey:    FP_PUBLIC_KEY,
         region: "ap",
         endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
       });
-  return fpAgent;
 }
 
 // Run a fresh v4 identification — returns sealed result for server-side unseal
 async function freshIdentify() {
+  // Completely clear the local cache before making a fresh API call
+  sessionStorage.removeItem('fp_result');
+  
   const agent       = await getFpAgent();
   const fingerprint = await agent.get();
 
