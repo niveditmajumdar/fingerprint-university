@@ -412,11 +412,12 @@
     try {
       if (!fpAgent) {
         const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
-      fpAgent = FP.start({
-        apiKey:   FP_PUBLIC_KEY,
-        region: "ap",
-        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
-      });
+        const endpointWithRegion = `${FP_URL_PATH}?region=ap`;
+        fpAgent = FP.start({
+          apiKey:    FP_PUBLIC_KEY,
+          region: "ap",
+          endpoints:  endpointWithRegion,   // routes identification calls through your subdomain
+        });
       }
 
       const fingerprint = await fpAgent.get();
