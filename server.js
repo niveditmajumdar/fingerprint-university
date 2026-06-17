@@ -1,1361 +1,1910 @@
-require('dotenv').config();
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fingerprint University</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+  /* ── Toast notifications ─────────────────────────────────────────────────── */
+  .toast-container { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+  .toast { display:flex; align-items:flex-start; gap:10px; padding:12px 16px; border-radius:10px; font-size:13px; font-family:'Inter',sans-serif; max-width:340px; pointer-events:all; box-shadow:0 4px 20px rgba(0,0,0,.25); animation:toast-in .25s ease; }
+  .toast.toast-warn  { background:#1e1a12; border:1px solid rgba(245,158,11,.4); color:#fbbf24; }
+  .toast.toast-info  { background:#0f1f0f; border:1px solid rgba(34,197,94,.3);  color:#86efac; }
+  .toast.toast-error { background:#1f0f0f; border:1px solid rgba(239,68,68,.3);  color:#fca5a5; }
+  .toast-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+  .toast-body { line-height:1.5; }
+  .toast-title { font-weight:600; margin-bottom:2px; }
+  .toast-msg   { font-size:12px; opacity:.8; }
+  @keyframes toast-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes toast-out { to { opacity:0; transform:translateY(12px); } }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    [data-theme="dark"]{
+      --bg:#08090d;--surface:#0e0f16;--card:#13141e;--card2:#1a1b28;
+      --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+      --text:#ededee;--text2:#b0b1be;--muted:#6c6d80;
+      --accent:#f97316;--accent2:#fdba74;
+      --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#60a5fa;
+      --tab-bg:#0e0f16;--tab-active:#13141e;--shadow:rgba(0,0,0,0.4);
+    }
+    [data-theme="light"]{
+      --bg:#f0f1f5;--surface:#ffffff;--card:#ffffff;--card2:#f8f9fb;
+      --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+      --text:#0d0e14;--text2:#3c3d4e;--muted:#7a7b8e;
+      --accent:#ea6b0e;--accent2:#c45a08;
+      --green:#16a34a;--red:#dc2626;--amber:#d97706;--blue:#2563eb;
+      --tab-bg:#eaebee;--tab-active:#ffffff;--shadow:rgba(0,0,0,0.08);
+    }
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+    header{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:24px;position:fixed;top:0;left:0;right:0;z-index:50;background:var(--surface);box-shadow:0 1px 0 var(--border)}
+    /* Push main content below fixed header */
+    body{padding-top:56px;padding-bottom:52px}
+    .logo{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+    .logo-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
+    .header-nav{display:flex;gap:18px}
+    .header-nav a{font-size:14px;color:var(--muted);text-decoration:none;transition:color .15s;white-space:nowrap}
+    .header-nav a:hover{color:var(--accent)}
+    .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .user-name{font-size:14px;color:var(--muted);white-space:nowrap}
+    .user-name strong{color:var(--text);font-weight:600}
+    .icon-btn{width:34px;height:34px;border-radius:8px;background:transparent;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:border-color .15s;color:var(--muted);font-family:'Inter',sans-serif}
+    .icon-btn:hover{border-color:var(--accent);background:rgba(249,115,22,.08)}
+    .logout-btn{padding:5px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:border-color .15s,color .15s;font-family:'Inter',sans-serif}
+    .logout-btn:hover{border-color:var(--red);color:var(--red)}
+    main{flex:1;max-width:1400px;width:100%;margin:0 auto;padding:24px 28px 60px;display:flex;flex-direction:column;gap:20px}
+    .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;flex-direction:column;gap:5px}
+    .stat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+    .stat-value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;color:var(--text);line-height:1}
+    .stat-value.green{color:var(--green)}.stat-value.amber{color:var(--amber)}.stat-value.red{color:var(--red)}
+    .stat-sub{font-size:12px;color:var(--muted)}
+    .dots-row{display:flex;gap:7px;align-items:center;margin-top:3px}
+    .dot{width:16px;height:16px;border-radius:50%;background:var(--border2);border:1.5px solid var(--border2);transition:all .3s}
+    .dot.watched{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px rgba(249,115,22,.45)}
+    .dot.last{background:var(--amber);border-color:var(--amber)}
+    .fp-stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px}
+    .fp-stat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+    .fp-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
+    .visitor-id-large{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--accent2);word-break:break-all;margin-bottom:8px;line-height:1.5}
+    .sig-chips{display:flex;gap:5px;flex-wrap:wrap}
+    .sig-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);color:var(--muted)}
+    .sig-chip.green{border-color:rgba(34,197,94,.3);color:var(--green);background:rgba(34,197,94,.07)}
+    .sig-chip.amber{border-color:rgba(245,158,11,.3);color:var(--amber);background:rgba(245,158,11,.07)}
+    .sig-chip.red{border-color:rgba(239,68,68,.3);color:var(--red);background:rgba(239,68,68,.07)}
+    .upgrade-nudge{display:none;background:var(--card);border:1px solid rgba(249,115,22,.25);border-radius:10px;padding:14px 20px;align-items:center;gap:14px;flex-wrap:wrap}
+    .upgrade-nudge.show{display:flex}
+    .nudge-text{font-size:14px;color:var(--muted);flex:1}
+    .nudge-text strong{color:var(--text)}
+    .nudge-link{font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;border:1px solid rgba(249,115,22,.35);padding:6px 16px;border-radius:6px;transition:background .15s;cursor:pointer}
+    .nudge-link:hover{background:rgba(249,115,22,.1)}
+    .tab-bar{display:flex;gap:2px;background:var(--tab-bg);border:1px solid var(--border);border-radius:12px;padding:4px;width:100%}
+    .tab-btn{flex:1;padding:12px 10px;border-radius:8px;border:none;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;font-size:18px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:8px}
+    .tab-btn:hover{color:var(--text)}
+    .tab-btn.active{background:var(--tab-active);color:var(--text);font-weight:600;box-shadow:0 1px 3px var(--shadow)}
+    .tab-btn .tab-icon{font-size:16px}
+    .coming-pill{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:rgba(249,115,22,.15);color:var(--accent);padding:2px 7px;border-radius:100px}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+    .section-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+    .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+    .video-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s,transform .2s,box-shadow .2s}
+    .video-card:not(.locked):hover{border-color:rgba(249,115,22,.4);transform:translateY(-3px);box-shadow:0 16px 40px var(--shadow)}
+    .video-card.locked{opacity:.4}
+    .thumb-wrap{position:relative;padding-top:56.25%;background:var(--surface);cursor:pointer;overflow:hidden}
+    .video-card.locked .thumb-wrap{cursor:default}
+    .thumb-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .3s}
+    .video-card:not(.locked):hover .thumb-wrap img{transform:scale(1.04)}
+    .play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.28);transition:background .2s}
+    .video-card:not(.locked):hover .play-overlay{background:rgba(0,0,0,.1)}
+    .play-circle{width:54px;height:54px;background:rgba(249,115,22,.9);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(249,115,22,.45);transition:transform .2s}
+    .video-card:not(.locked):hover .play-circle{transform:scale(1.1)}
+    .rewatch-badge{position:absolute;top:10px;right:10px;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;background:rgba(34,197,94,.85);color:#fff;padding:3px 8px;border-radius:100px}
+    .lock-overlay{position:absolute;inset:0;background:rgba(8,9,13,.65);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+    .lock-text{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+    .video-info{padding:14px 16px 18px}
+    .video-title{font-size:14px;font-weight:600;line-height:1.4;margin-bottom:4px}
+    .video-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+    .watched-tag{display:inline-flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--green);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);padding:2px 8px;border-radius:100px;margin-top:7px}
+    .docs-layout{display:grid;grid-template-columns:210px 1fr;gap:20px}
+    .docs-sidebar{display:flex;flex-direction:column;gap:4px}
+    .docs-nav-item{padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;border:1px solid transparent;display:flex;align-items:center;gap:8px}
+    .docs-nav-item:hover{color:var(--text);background:var(--card)}
+    .docs-nav-item.active{color:var(--accent);background:rgba(249,115,22,.08);border-color:rgba(249,115,22,.2)}
+    .doc-panel{display:none}.doc-panel.active{display:block}
+    .doc-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:32px 36px}
+    .doc-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+    .doc-title{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+    .doc-intro{font-size:15px;line-height:1.7;color:var(--text2);margin-bottom:24px}
+    .doc-section{margin-bottom:24px}
+    .doc-section h3{font-size:15px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .doc-section p{font-size:14px;line-height:1.7;color:var(--text2);margin-bottom:10px}
+    .doc-section ul{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+    .doc-section li{font-size:14px;line-height:1.6;color:var(--text2)}
+    .doc-section li strong{color:var(--text);font-weight:600}
+    .code-block{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:14px 18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent2);line-height:1.6;overflow-x:auto;margin:10px 0}
+    .signal-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+    .signal-table th{text-align:left;padding:8px 12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+    .signal-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2)}
+    .signal-table tr:last-child td{border-bottom:none}
+    .signal-table td:first-child{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent2)}
+    .doc-link{display:inline-flex;align-items:center;gap:6px;margin-top:20px;padding:10px 20px;background:transparent;border:1px solid var(--accent);border-radius:8px;color:var(--accent);font-size:13px;font-weight:600;text-decoration:none;transition:background .15s}
+    .doc-link:hover{background:rgba(249,115,22,.1)}
+    .cert-wrap{width:100%}
+    .cert-header{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;margin-bottom:20px}
+    .cert-header h2{font-size:22px;font-weight:700;margin-bottom:8px}
+    .cert-header p{font-size:14px;color:var(--muted);line-height:1.65}
+    .cert-rule{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);margin-top:12px;padding:10px 14px;background:var(--surface);border-radius:8px;border:1px solid var(--border2);line-height:1.5}
+    .cert-rule .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
+    .cert-already{background:var(--card);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:32px;text-align:center;margin-bottom:20px}
+    .cert-already h3{font-size:18px;font-weight:700;color:var(--green);margin-bottom:8px}
+    .cert-already p{font-size:14px;color:var(--muted);margin-bottom:16px}
+    .question-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px 24px;margin-bottom:12px}
+    .q-num{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+    .q-text{font-size:15px;font-weight:600;margin-bottom:14px;line-height:1.4}
+    .options{display:flex;flex-direction:column;gap:8px}
+    .option{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border2);border-radius:8px;cursor:pointer;transition:all .15s;font-size:14px;color:var(--text2)}
+    .option:hover{border-color:var(--accent);color:var(--text);background:rgba(249,115,22,.05)}
+    .option.selected{border-color:var(--accent);background:rgba(249,115,22,.1);color:var(--text)}
+    .option input{accent-color:var(--accent)}
+    .btn-submit-cert{margin-top:8px;padding:13px 32px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s}
+    .btn-submit-cert:hover{opacity:.88}
+    .btn-submit-cert:disabled{opacity:.45;cursor:not-allowed}
+    /* ── QUIZ UI ── */
+    .quiz-start{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:40px;text-align:center;margin-bottom:12px}
+    .quiz-start h3{font-size:20px;font-weight:700;margin-bottom:10px}
+    .quiz-start p{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:24px}
+    .quiz-rules{display:flex;flex-direction:column;gap:8px;text-align:left;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:16px 20px;margin:0 auto 28px;max-width:480px}
+    .quiz-rule-row{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)}
+    .quiz-rule-icon{font-size:16px;flex-shrink:0}
+    .btn-start-quiz{padding:14px 40px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s}
+    .btn-start-quiz:hover{opacity:.88}
+    .quiz-chrome{display:none}
+    .quiz-chrome.active{display:block}
+    .quiz-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 20px;margin-bottom:16px;gap:12px}
+    .quiz-progress-label{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+    .quiz-progress-label strong{color:var(--text);font-size:14px}
+    .quiz-timer{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--green);display:flex;align-items:center;gap:6px}
+    .quiz-timer.warn{color:var(--amber)}
+    .quiz-timer.danger{color:var(--red);animation:timerPulse .8s ease-in-out infinite}
+    @keyframes timerPulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .quiz-progress-dots{display:flex;gap:5px;flex-wrap:wrap}
+    .q-dot{width:11px;height:11px;border-radius:50%;background:var(--border2);border:1.5px solid var(--border2);cursor:pointer;transition:all .15s;flex-shrink:0}
+    .q-dot.answered{background:var(--accent);border-color:var(--accent)}
+    .q-dot.current{box-shadow:0 0 0 2px var(--text)}
+    .question-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+    .quiz-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px;flex-wrap:wrap}
+    .btn-nav{padding:10px 24px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--text);cursor:pointer;transition:border-color .15s,opacity .15s}
+    .btn-nav:hover:not(:disabled){border-color:var(--accent)}
+    .btn-nav:disabled{opacity:.3;cursor:not-allowed}
+    /* ── Verify modal ── */
+    #verify-modal .modal-box{max-width:460px;padding:40px 36px;text-align:center}
+    .verify-icon{font-size:44px;margin-bottom:14px}
+    .verify-title{font-size:20px;font-weight:700;margin-bottom:10px}
+    .verify-body{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:20px}
+    .verify-code-input{width:100%;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:22px;text-align:center;letter-spacing:.3em;color:var(--text);outline:none;margin-bottom:8px;transition:border-color .15s}
+    .verify-code-input:focus{border-color:var(--accent)}
+    .verify-error{font-size:13px;color:var(--red);margin-bottom:12px;min-height:18px}
+    .btn-send-code{width:100%;padding:10px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:8px;transition:border-color .15s,color .15s}
+    .btn-send-code:hover{border-color:var(--accent);color:var(--text)}
+    .btn-verify-code{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s;margin-top:4px}
+    .btn-verify-code:hover{opacity:.88}
+    .btn-verify-code:disabled{opacity:.45;cursor:not-allowed}
+    .coming-soon-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:64px 32px;text-align:center}
+    .cs-icon{font-size:52px;margin-bottom:18px}
+    .cs-title{font-size:22px;font-weight:700;margin-bottom:10px}
+    .cs-desc{font-size:15px;color:var(--muted);line-height:1.65;max-width:440px;margin:0 auto 24px}
+    .cs-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:rgba(249,115,22,.1);color:var(--accent);border:1px solid rgba(249,115,22,.25);padding:6px 16px;border-radius:100px}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;padding:24px}
+    .modal-backdrop.open{display:flex}
+    .modal-box{background:var(--card);border:1px solid var(--border2);border-radius:16px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.6);position:relative}
+    .modal-close-btn{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background .15s;z-index:1}
+    .modal-close-btn:hover{background:var(--surface);color:var(--text)}
+    #video-modal .modal-box{max-width:820px}
+    .modal-header{padding:13px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+    .modal-title{font-size:14px;font-weight:600}
+    .modal-body iframe{display:block;width:100%;aspect-ratio:16/9;border:none}
+    #paywall-modal .modal-box{max-width:460px;padding:40px 36px;text-align:center}
+    .paywall-icon{font-size:44px;margin-bottom:14px}
+    .paywall-title{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+    .paywall-body{font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:24px}
+    .paywall-body strong{color:var(--text)}
+    .paywall-benefits{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px 18px;margin-bottom:24px;text-align:left}
+    .benefit-row{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);padding:4px 0}
+    .benefit-row .check{color:var(--green);flex-shrink:0}
+    .benefit-row span{color:var(--text)}
+    .paywall-cta{display:block;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;transition:opacity .15s;margin-bottom:10px}
+    .paywall-cta:hover{opacity:.88}
+    .paywall-dismiss{font-size:13px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;transition:color .15s}
+    .paywall-dismiss:hover{color:var(--text)}
+    #cert-result-modal .modal-box{max-width:480px;padding:40px 36px;text-align:center}
+    .cert-result-icon{font-size:52px;margin-bottom:16px}
+    .cert-result-title{font-size:22px;font-weight:700;margin-bottom:10px}
+    .cert-result-body{font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:24px}
+    .btn-primary{display:block;width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;transition:opacity .15s}
+    .btn-primary:hover{opacity:.88}
+    .btn-secondary{font-size:13px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif}
+    #suspect-modal .modal-box{max-width:460px;padding:40px 36px;text-align:center}
+    .suspect-icon{font-size:44px;margin-bottom:14px}
+    .suspect-title{font-size:20px;font-weight:700;margin-bottom:10px}
+    .suspect-body{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px}
+    .suspect-score-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:6px 16px;border-radius:100px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25);margin-bottom:18px}
+    .suspect-signals{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+    #report-modal .modal-box{max-width:520px;padding:32px 36px}
+    .report-title{font-size:20px;font-weight:700;margin-bottom:4px}
+    .report-vid{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);word-break:break-all;margin-bottom:20px}
+    .report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+    .report-stat{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:14px 16px}
+    .report-stat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+    .report-stat-value{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600}
+    .report-sig-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+    #how-modal .modal-box{max-width:580px;padding:32px 36px;max-height:85vh;overflow-y:auto}
+    .how-title{font-size:20px;font-weight:700;margin-bottom:18px}
+    .how-step{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+    .how-step-num{width:28px;height:28px;border-radius:50%;background:rgba(249,115,22,.15);color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .how-step-text strong{display:block;font-size:14px;font-weight:600;margin-bottom:3px}
+    .how-step-text span{font-size:13px;color:var(--muted);line-height:1.6}
+    .how-note{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--muted);line-height:1.6;margin-top:6px}
+    .how-note code{font-family:'IBM Plex Mono',monospace;color:var(--accent2);font-size:12px}
+    footer{border-top:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;justify-content:center;gap:18px;background:var(--surface);flex-wrap:wrap;position:fixed;bottom:0;left:0;right:0;z-index:50}
+    footer a,footer button.footer-link{font-size:14px;color:var(--muted);text-decoration:none;transition:color .15s;background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;padding:0}
+    footer a:hover,footer button.footer-link:hover{color:var(--accent)}
+    footer .sep{color:var(--border2);font-size:14px}
+    /* ── FPJS log modal ── */
+    #fplog-modal .modal-box{max-width:700px;padding:28px 32px;max-height:85vh;overflow-y:auto}
+    .fplog-title{font-size:18px;font-weight:700;margin-bottom:4px}
+    .fplog-sub{font-size:12px;color:var(--muted);margin-bottom:18px;font-family:'IBM Plex Mono',monospace}
+    .fplog-table{width:100%;border-collapse:collapse;font-size:12px}
+    .fplog-table th{text-align:left;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+    .fplog-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);vertical-align:top}
+    .fplog-table tr:last-child td{border-bottom:none}
+    .fplog-table tr:hover td{background:rgba(255,255,255,.02)}
+    .fplog-event{color:var(--accent2);font-weight:500}
+    .fplog-badge{display:inline-block;padding:1px 7px;border-radius:100px;font-size:10px;font-weight:600}
+    .fplog-badge.js{background:rgba(96,165,250,.1);color:var(--blue);border:1px solid rgba(96,165,250,.2)}
+    .fplog-badge.server{background:rgba(249,115,22,.1);color:var(--accent);border:1px solid rgba(249,115,22,.2)}
+    .fplog-badge.error{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+    @media(max-width:900px){.stats-bar{grid-template-columns:1fr 1fr}.docs-layout{grid-template-columns:1fr}.docs-sidebar{flex-direction:row;flex-wrap:wrap}main{padding:20px 16px 40px}.tab-bar{overflow-x:auto}.tab-btn{font-size:14px}}
+    @media(max-width:600px){.stats-bar{grid-template-columns:1fr}.header-nav{display:none}.tab-btn{font-size:13px;padding:10px 6px}}
+  </style>
+</head>
+<body>
+<div class="toast-container" id="toast-container"></div>
 
-const express  = require('express');
-const session  = require('express-session');
-const path     = require('path');
-const fs       = require('fs');
-const https    = require('https');
-const bcrypt   = require('bcrypt');
-const crypto   = require('crypto');
-const db       = require('./db/db');
+<header>
+  <a class="logo" href="/"><span class="logo-dot"></span>Fingerprint University</a>
+  <nav class="header-nav">
+    <a href="https://docs.fingerprint.com/docs/quick-start-guide" target="_blank">Docs</a>
+    <a href="https://docs.fingerprint.com/docs/smart-signals-introduction" target="_blank">Smart signals</a>
+    <a href="https://docs.fingerprint.com/docs/sealed-client-results" target="_blank">Sealed results</a>
+    <a href="https://docs.fingerprint.com/docs/webhooks" target="_blank">Webhooks</a>
+  </nav>
+  <div class="header-right">
+    <span class="user-name">Hi, <strong id="user-name">…</strong></span>
+    <button class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    <button class="logout-btn" onclick="logout()">Log out</button>
+  </div>
+</header>
 
-// Fingerprint Node SDK — exact implementation from docs
-// https://docs.fingerprint.com/docs/sealed-client-results
-// Package: @fingerprint/node-sdk (v7.0+)
-// Install: npm install @fingerprint/node-sdk
-let unsealEventsResponse, DecryptionAlgorithm;
-try {
-  const fpSdk = require('@fingerprint/node-sdk');
-  unsealEventsResponse = fpSdk.unsealEventsResponse;
-  DecryptionAlgorithm  = fpSdk.DecryptionAlgorithm;
-  if (!unsealEventsResponse) throw new Error('unsealEventsResponse not found in exports');
-  console.log('✅  @fingerprint/node-sdk loaded — sealed results enabled');
-} catch(e) {
-  console.warn('⚠️  @fingerprint/node-sdk not loaded:', e.message);
-  console.warn('    Run: npm install @fingerprint/node-sdk\n');
+<main>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('videos',this)"><span class="tab-icon">🎬</span>Video lectures</button>
+    <button class="tab-btn" onclick="switchTab('docs',this)"><span class="tab-icon">📖</span>Documentation</button>
+    <button class="tab-btn" onclick="switchTab('certify',this)"><span class="tab-icon">🏆</span>Get certified</button>
+    <button class="tab-btn" onclick="switchTab('review',this)"><span class="tab-icon">⭐</span>Leave a review</button>
+  </div>
+
+  <div class="tab-panel active" id="panel-videos">
+
+    <div class="stats-bar" style="margin-bottom:0">
+      <div class="stat-card">
+        <span class="stat-label">Videos watched</span>
+        <span class="stat-value" id="watched-val">–</span>
+        <span class="stat-sub">of 3 free videos</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Remaining</span>
+        <span class="stat-value" id="remaining-val">–</span>
+        <span class="stat-sub">free videos left</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Progress</span>
+        <div class="dots-row">
+          <div class="dot" id="dot-1"></div>
+          <div class="dot" id="dot-2"></div>
+          <div class="dot" id="dot-3"></div>
+        </div>
+        <span class="stat-sub" id="dots-sub">0 / 3 used</span>
+      </div>
+      <div class="fp-stat-card">
+        <div class="fp-stat-label"><span class="fp-live-dot"></span>Visitor ID (per-device)</div>
+        <div class="visitor-id-large" id="fp-vid-large">–</div>
+        <div class="sig-chips" id="fp-chips"></div>
+      </div>
+    </div>
+
+    <div class="upgrade-nudge" id="upgrade-nudge">
+      <span class="nudge-text">You've watched <strong>3 videos</strong>. Enjoying the content?</span>
+      <span class="nudge-link" onclick="openPaywall()">View premium plan →</span>
+    </div>
+
+    <p class="section-label">Fingerprint YouTube channel</p>
+    <div class="video-grid" id="video-grid"></div>
+  </div>
+
+  <div class="tab-panel" id="panel-docs">
+    <div class="docs-layout">
+      <div class="docs-sidebar">
+        <div class="docs-nav-item active" onclick="switchDoc('intro',this)">🔬 What is Fingerprint?</div>
+        <div class="docs-nav-item" onclick="switchDoc('smartsignals',this)">⚡ Smart Signals</div>
+        <div class="docs-nav-item" onclick="switchDoc('botdetection',this)">🤖 Bot Detection</div>
+        <div class="docs-nav-item" onclick="switchDoc('install',this)">🛠️ Quick install</div>
+        <div class="docs-nav-item" onclick="switchDoc('webhooks',this)">🔔 Webhooks</div>
+      </div>
+      <div>
+        <div class="doc-panel active" id="doc-intro"><div class="doc-card">
+          <p class="doc-eyebrow">Overview</p><h2 class="doc-title">What is Fingerprint?</h2>
+          <p class="doc-intro">Fingerprint is a device intelligence platform that assigns a stable visitor ID to each browser — one that persists beyond cookies, incognito mode, VPNs, and browser resets.</p>
+          <div class="doc-section"><h3>🔑 Core concepts</h3><ul>
+            <li><strong>Visitor ID</strong> — Stable probabilistic identifier. Survives cookie clears and incognito mode.</li>
+            <li><strong>Request ID</strong> — Unique ID per identification call. Used to fetch Smart Signals from the Server API.</li>
+            <li><strong>Confidence score</strong> — 0–1 value indicating certainty. Above 0.7 is high confidence.</li>
+            <li><strong>Suspect Score</strong> — Weighted sum of triggered Smart Signals. Higher = more suspicious.</li>
+          </ul></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/introduction" target="_blank">Read full documentation ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-smartsignals"><div class="doc-card">
+          <p class="doc-eyebrow">Smart Signals</p><h2 class="doc-title">Smart Signals</h2>
+          <p class="doc-intro">Smart Signals provide actionable device intelligence. Only available server-side to prevent tampering.</p>
+          <div class="doc-section"><h3>📡 Available signals</h3>
+          <table class="signal-table"><thead><tr><th>Signal</th><th>What it detects</th></tr></thead><tbody>
+            <tr><td>botDetection</td><td>Automated browsers vs real users</td></tr>
+            <tr><td>vpnDetection</td><td>VPN and proxy usage</td></tr>
+            <tr><td>incognito</td><td>Private browsing mode</td></tr>
+            <tr><td>tampering</td><td>Modified browser fingerprint attributes</td></tr>
+            <tr><td>suspectScore</td><td>Weighted sum of all triggered signals</td></tr>
+          </tbody></table></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/smart-signals-introduction" target="_blank">Read Smart Signals docs ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-botdetection"><div class="doc-card">
+          <p class="doc-eyebrow">Smart Signals</p><h2 class="doc-title">Bot Detection</h2>
+          <p class="doc-intro">Analyses hundreds of browser attributes to distinguish automated traffic from real users.</p>
+          <div class="doc-section"><h3>🤖 Bot categories</h3><ul>
+            <li><strong>not_detected</strong> — Likely a human using a regular browser.</li>
+            <li><strong>good</strong> — Known bots: search crawlers, monitoring tools.</li>
+            <li><strong>bad</strong> — Automation tools like Selenium, Puppeteer, or Playwright.</li>
+          </ul></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/bot-detection/overview" target="_blank">Read Bot Detection docs ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-install"><div class="doc-card">
+          <p class="doc-eyebrow">Getting started</p><h2 class="doc-title">Quick install</h2>
+          <div class="doc-section"><h3>Load via CDN</h3>
+          <div class="code-block">import FP from 'https://fpjscdn.net/v3/YOUR_PUBLIC_KEY'
+const fp = await FP.load()
+const result = await fp.get()
+console.log(result.visitorId)
+console.log(result.requestId)</div></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/install-the-javascript-agent" target="_blank">Full install guide ↗</a>
+        </div></div>
+        <div class="doc-panel" id="doc-webhooks"><div class="doc-card">
+          <p class="doc-eyebrow">Integration</p><h2 class="doc-title">Webhooks</h2>
+          <p class="doc-intro">Fingerprint pushes identification events to your server asynchronously.</p>
+          <div class="doc-section"><h3>🔐 Verifying the signature</h3>
+          <div class="code-block">const sig = req.headers['fpjs-event-signature'];
+const [, hash] = sig.split('=');
+const expected = crypto.createHmac('sha256', SECRET)
+  .update(req.rawBody).digest('hex');
+if (hash !== expected) return res.status(401).send();</div></div>
+          <a class="doc-link" href="https://docs.fingerprint.com/docs/webhooks" target="_blank">Read Webhooks docs ↗</a>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-certify">
+    <div class="cert-wrap">
+
+      <div class="stats-bar" style="margin-bottom:0" id="cert-stats-bar">
+        <div class="stat-card">
+          <span class="stat-label">Attempts used</span>
+          <span class="stat-value" id="cert-stat-attempts">–</span>
+          <span class="stat-sub">of 1 free attempt</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Status</span>
+          <span class="stat-value" id="cert-stat-status" style="font-size:18px">–</span>
+          <span class="stat-sub" id="cert-stat-sub">not attempted</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Score</span>
+          <span class="stat-value" id="cert-stat-score">–</span>
+          <span class="stat-sub">pass mark: 4 / 5</span>
+        </div>
+        <div class="fp-stat-card">
+          <div class="fp-stat-label"><span class="fp-live-dot"></span>Visitor ID (per-device)</div>
+          <div class="visitor-id-large" id="cert-vid-large">–</div>
+          <div class="sig-chips" id="cert-fp-chips"></div>
+        </div>
+      </div>
+
+      <div class="cert-header">
+        <h2>🏆 Get Certified</h2>
+        <p>Answer 5 multiple-choice questions about Fingerprint. Score 4 or more to earn your certificate. Each device gets one free attempt.</p>
+        <div class="cert-rule"><span class="dot"></span>Certification status is tracked per <strong style="margin:0 4px">Visitor ID</strong> — creating a new account won't reset your attempt.</div>
+      </div>
+
+      <div id="cert-already-banner" style="display:none" class="cert-already">
+        <h3>✅ Already certified!</h3>
+        <p id="cert-already-score"></p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn-primary" style="max-width:220px" onclick="openCertificate()">View certificate</button>
+          <button onclick="openAnswersModal()" style="padding:12px 20px;background:transparent;border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--text);cursor:pointer">View answers</button>
+        </div>
+      </div>
+
+      <div id="cert-no-attempts-banner" style="display:none" class="cert-already" style="border-color:rgba(239,68,68,.25)">
+        <h3 style="color:var(--red)">No attempts remaining</h3>
+        <p style="font-size:14px;color:var(--muted);margin-bottom:16px">This device has used its free attempt. Upgrade to premium for more attempts and resources.</p>
+        <button class="btn-primary" style="max-width:240px;margin:0 auto" onclick="openPaywall()">View premium plan</button>
+      </div>
+
+      <div class="quiz-start" id="quiz-start-screen">
+        <h3>Ready to take the test?</h3>
+        <p>You'll have 5 minutes to answer 5 multiple-choice questions. You can navigate between questions freely. Your answers are saved as you go.</p>
+        <div class="quiz-rules">
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">⏱️</span>5-minute countdown timer — submit before it runs out</div>
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">✅</span>Score 4 out of 5 to earn your certificate</div>
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">🔒</span>One attempt per device — this cannot be reset</div>
+          <div class="quiz-rule-row"><span class="quiz-rule-icon">🛡️</span>Device verification required on submission</div>
+        </div>
+        <button class="btn-start-quiz" onclick="startQuiz()">Start the test →</button>
+      </div>
+
+      <div class="quiz-chrome" id="quiz-chrome">
+        <div class="quiz-topbar">
+          <div class="quiz-progress-label">Question <strong id="q-current-num">1</strong> of 5</div>
+          <div class="quiz-progress-dots" id="q-dots"></div>
+          <div class="quiz-timer" id="quiz-timer">⏱ 5:00</div>
+        </div>
+
+        <div id="active-question-card"></div>
+
+        <div class="quiz-nav">
+          <button class="btn-nav" id="btn-prev" onclick="quizNav(-1)">← Previous</button>
+          <span style="font-size:13px;color:var(--muted)" id="quiz-answered-count">0 / 5 answered</span>
+          <div style="display:flex;gap:10px">
+            <button class="btn-nav" id="btn-next" onclick="quizNav(1)">Next →</button>
+            <button class="btn-submit-cert" id="cert-submit-btn" onclick="submitCert()">Submit test</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-review">
+
+    <div id="review-done-banner" style="display:none;background:var(--card);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:36px;text-align:center">
+      <div style="font-size:44px;margin-bottom:14px">🎁</div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:10px;color:var(--green)">Review submitted!</h2>
+      <p style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:10px">
+        A $20 gift card is on its way to <strong id="review-done-email" style="color:var(--text)"></strong>.
+      </p>
+      <p style="font-size:13px;color:var(--muted)">Submitted at: <span id="review-done-time"></span></p>
+    </div>
+
+    <div id="review-form-wrap" style="width:100%">
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;margin-bottom:16px">
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:8px">⭐ Leave a Review</h2>
+        <p style="font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:0">
+          Share your experience with Fingerprint University. Each device can submit one review — we'll send a <strong style="color:var(--text)">$20 gift card</strong> to the email address you provide.
+        </p>
+        <div style="margin-top:14px;padding:10px 14px;background:var(--surface);border-radius:8px;border:1px solid var(--border2);font-size:13px;color:var(--muted);display:flex;align-items:flex-start;gap:8px">
+          <span style="color:var(--accent);flex-shrink:0">🛡️</span>
+          <span>One gift card per device — Fingerprint's Visitor ID ensures this cannot be circumvented by creating multiple accounts or using incognito mode.</span>
+        </div>
+      </div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px">
+
+        <div style="margin-bottom:20px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Rating</label>
+          <div style="display:flex;gap:8px" id="star-row">
+            <span class="star-btn" onclick="setRating(1)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="1 star">☆</span>
+            <span class="star-btn" onclick="setRating(2)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="2 stars">☆</span>
+            <span class="star-btn" onclick="setRating(3)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="3 stars">☆</span>
+            <span class="star-btn" onclick="setRating(4)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="4 stars">☆</span>
+            <span class="star-btn" onclick="setRating(5)" style="font-size:28px;cursor:pointer;transition:transform .1s" title="5 stars">☆</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Email address <span style="color:var(--red)">*</span></label>
+          <input type="email" id="review-email" placeholder="you@example.com"
+            style="width:100%;padding:11px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text);outline:none;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"/>
+        </div>
+
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Subject</label>
+          <input type="text" id="review-subject" placeholder="What did you enjoy most?"
+            style="width:100%;padding:11px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"/>
+        </div>
+
+        <div style="margin-bottom:24px">
+          <label style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px">Your review</label>
+          <textarea id="review-body" placeholder="Tell us about your experience with the course material, the certification process, or anything else…"
+            style="width:100%;padding:11px 16px;background:var(--surface);border:1.5px solid var(--border2);border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;resize:vertical;min-height:120px;transition:border-color .15s;line-height:1.6"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
+        </div>
+
+        <div id="review-error" style="display:none;font-size:13px;color:var(--red);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px"></div>
+
+        <div style="display:flex;justify-content:center;margin-bottom:12px">
+          <button onclick="submitReview()"
+            style="padding:13px 40px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s"
+            id="review-submit-btn">
+            Submit review &amp; claim $20 gift card
+          </button>
+        </div>
+
+        <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px">
+          By submitting, you confirm this is your own genuine review. One submission per device is enforced by Fingerprint.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="video-modal">
+  <div class="modal-box" style="max-width:820px">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Video</span>
+      <button class="modal-close-btn" onclick="closeVideoModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <iframe id="modal-iframe" src="" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="paywall-modal">
+  <div class="modal-box" style="max-width:460px;padding:40px 36px;text-align:center">
+    <button class="modal-close-btn" onclick="closePaywall()">✕</button>
+    <div class="paywall-icon">🎓</div>
+    <h2 class="paywall-title">You've watched 3 videos</h2>
+    <p class="paywall-body">You've used your <strong>3 free videos</strong> on this device. Upgrade to premium to unlock unlimited access.</p>
+    <div class="paywall-benefits">
+      <div class="benefit-row"><span class="check">✓</span><span>Unlimited video access</span></div>
+      <div class="benefit-row"><span class="check">✓</span><span>Priority support</span></div>
+      <div class="benefit-row"><span class="check">✓</span><span>Downloadable course materials</span></div>
+      <div class="benefit-row"><span class="check">✓</span><span>Unlimited certification attempts</span></div>
+    </div>
+    <a class="paywall-cta" href="https://fingerprint.com/pricing/" target="_blank">Explore premium plan</a>
+    <button class="paywall-dismiss" onclick="closePaywall()">Maybe later</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="cert-result-modal">
+  <div class="modal-box" style="max-width:480px;padding:40px 36px;text-align:center">
+    <button class="modal-close-btn" onclick="closeCertResult()">✕</button>
+    <div class="cert-result-icon" id="cr-icon"></div>
+    <h2 class="cert-result-title" id="cr-title"></h2>
+    <p class="cert-result-body" id="cr-body"></p>
+    <button class="btn-primary" id="cr-primary-btn"></button>
+    <button class="btn-secondary" onclick="closeCertResult()">Close</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="suspect-modal">
+  <div class="modal-box" style="max-width:460px;padding:40px 36px;text-align:center">
+    <div class="suspect-icon">🔍</div>
+    <h2 class="suspect-title">Unusual activity detected</h2>
+    <p class="suspect-body">We've noticed some unusual signals from your device during <span id="suspect-modal-context">this action</span>. You can still proceed, but please be aware your submission may be flagged for review.</p>
+    <div class="suspect-score-badge" id="suspect-score-badge">Suspect score: –</div>
+    <div class="suspect-signals" id="suspect-signals-list"></div>
+    <button class="btn-primary" onclick="closeSuspectAndProceed()">Proceed anyway</button>
+    <button class="btn-secondary" onclick="closeSuspectAndDismiss()">Dismiss</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="report-modal">
+  <div class="modal-box" style="max-width:520px;padding:32px 36px">
+    <button class="modal-close-btn" onclick="document.getElementById('report-modal').classList.remove('open')">✕</button>
+    <h2 class="report-title">Device Report Card</h2>
+    <div class="report-vid" id="report-vid">–</div>
+    <div class="report-grid" id="report-grid"></div>
+    <div class="report-sig-row" id="report-sig-row"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="how-modal">
+  <div class="modal-box" style="max-width:580px;padding:32px 36px;max-height:85vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('how-modal').classList.remove('open')">✕</button>
+    <h2 class="how-title">How does this PoC work?</h2>
+    <div class="how-step"><div class="how-step-num">1</div><div class="how-step-text"><strong>Sign In click → Fingerprint JS agent runs</strong><span>The agent collects 300+ browser signals and calls the Fingerprint API, returning a visitorId and requestId. This fires on button click — not page load — so incognito mode and VPN state at authentication time are captured.</span></div></div>
+    <div class="how-step"><div class="how-step-num">2</div><div class="how-step-text"><strong>Visitor ID registered server-side</strong><span>The visitorId and signals are sent to POST /api/fp/identify. The server keys all counters to the visitorId, not the email address.</span></div></div>
+    <div class="how-step"><div class="how-step-num">3</div><div class="how-step-text"><strong>Cached in sessionStorage — no repeated API calls</strong><span>The full FP result is stored in sessionStorage after identification. The videos page reads from cache, so no second Fingerprint API call is made.</span></div></div>
+    <div class="how-step"><div class="how-step-num">4</div><div class="how-step-text"><strong>Video count tied to visitorId, not email</strong><span>Log out, switch accounts, use incognito — the server tracks views by visitorId. A different email on the same device hits the same counter.</span></div></div>
+    <div class="how-step"><div class="how-step-num">5</div><div class="how-step-text"><strong>Suspect score checked on tab switch + cert submit</strong><span>The cached suspect score is evaluated each time you switch tabs or submit the certification test. If it exceeds the threshold (12), a step-up verification modal appears.</span></div></div>
+    <div class="how-step"><div class="how-step-num">6</div><div class="how-step-text"><strong>Certification attempt tracked per device</strong><span>One free attempt per visitorId. Creating a new account doesn't reset it.</span></div></div>
+    <div class="how-step"><div class="how-step-num">7</div><div class="how-step-text"><strong>Smart Signals via Server API</strong><span>The ⚡ Smart signals footer link calls GET /api/smart-signals on the backend, which calls GET /events/:requestId on the Fingerprint Server API using your secret FP_API_KEY. Results are never exposed client-side.</span></div></div>
+    <div class="how-note"><strong>Note on Suspect Score:</strong> The full Suspect Score is only available via the Fingerprint Server API. In this demo it is computed client-side from available signals to simulate the behaviour. In production, fetch it from <code>GET /v4/events/:requestId</code> on your backend.</div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="verify-modal" style="z-index:150">
+  <div class="modal-box" style="max-width:460px;padding:40px 36px;text-align:center">
+    <div class="verify-icon">🔐</div>
+    <h2 class="verify-title">Verify your candidature</h2>
+    <p class="verify-body">We've detected unusual activity from your device. Before you submit the test, please enter the confirmation code sent to your email.</p>
+    <button class="btn-send-code" onclick="sendVerifyCode()">Send verification code to my email</button>
+    <input class="verify-code-input" id="verify-code-input" type="text" maxlength="4" placeholder="——" autocomplete="off"/>
+    <div class="verify-error" id="verify-error"></div>
+    <button class="btn-verify-code" id="btn-verify-code" onclick="checkVerifyCode()">Verify candidature</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="answers-modal">
+  <div class="modal-box" style="max-width:600px;padding:32px 36px;max-height:85vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('answers-modal').classList.remove('open')">✕</button>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:4px">Correct answers</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Review the answers to all 5 certification questions</p>
+    <div id="answers-list"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="signals-modal">
+  <div class="modal-box" style="max-width:640px;padding:32px 36px;max-height:88vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('signals-modal').classList.remove('open')">✕</button>
+    <h2 style="font-size:20px;font-weight:700;margin-bottom:4px">Smart Signals</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:6px">Live data from the Fingerprint Server API — <code style="font-family:'IBM Plex Mono',monospace;font-size:11px">GET /events/:requestId</code></p>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:20px;word-break:break-all" id="ss-request-id"></div>
+    <div id="ss-loading" style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:28px;margin-bottom:12px">⚡</div>Calling Fingerprint Server API…</div>
+    <div id="ss-error" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:14px 18px;font-size:13px;color:var(--red)"></div>
+    <div id="ss-content" style="display:none"></div>
+  </div>
+</div>
+
+<footer>
+  <a href="https://fingerprint.com" target="_blank">fingerprint.com</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com" target="_blank">Documentation</a>
+  <span class="sep">|</span>
+  <a href="https://docs.fingerprint.com/docs/use-case-tutorials-overview" target="_blank">Use cases</a>
+  <span class="sep">|</span>
+  <button class="footer-link" onclick="openReportCard()">📊 Device report card</button>
+  <span class="sep">|</span>
+  <button class="footer-link" onclick="openSmartSignals()">⚡ Smart signals</button>
+  <span class="sep">|</span>
+  <button class="footer-link" onclick="openFpLog()">📋 FPJS log</button>
+  <span class="sep">|</span>
+  <a href="/admin" class="footer-link">🛡️ Admin center</a>
+</footer>
+
+<script>
+// Public key injected by server at request time (same mechanism as login.html)
+const FP_PUBLIC_KEY = '__FP_PUBLIC_KEY__';
+const FP_URL_PATH = '__FP_URL_PATH__';
+
+// ── Toast notifications ───────────────────────────────────────────────────────
+function showToast(title, message, type = 'warn', duration = 5000) {
+  const icon = type === 'warn' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️';
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<div class="toast-icon">${icon}</div>
+    <div class="toast-body"><div class="toast-title">${title}</div><div class="toast-msg">${message}</div></div>`;
+  document.getElementById('toast-container').appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toast-out .3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+// Token is stored in localStorage (cross-tab sharing) with a 4-hour TTL.
+// sessionStorage holds a plain copy per-tab for fast access.
+// authFetch automatically includes X-Session-Token and handles displacement/expiry.
+
+function getSessionToken() {
+  // Fast path: sessionStorage (per-tab)
+  const fast = sessionStorage.getItem('fp_session_token');
+  if (fast) return fast;
+  // Fallback: localStorage with TTL check (cross-tab)
+  try {
+    const raw = localStorage.getItem('fp_session');
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.expiresAt && Date.now() > data.expiresAt) {
+      localStorage.removeItem('fp_session');
+      return null;
+    }
+    // Mirror to sessionStorage for this tab
+    sessionStorage.setItem('fp_session_token', data.token);
+    return data.token;
+  } catch(e) { return null; }
 }
 
-const app  = express();
-const PORT = process.env.PORT || 3000;
+async function authFetch(url, opts = {}) {
+  const token = getSessionToken();
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['X-Session-Token'] = token;
 
-if (!process.env.FP_URL_PATH)  console.warn('\n⚠️  FP_URL_PATH not set in .env\n');
-if (!process.env.FP_PUBLIC_KEY)  console.warn('\n⚠️  FP_PUBLIC_KEY not set in .env\n');
-if (!process.env.FP_API_KEY)     console.warn('⚠️  FP_API_KEY not set — Server API fallback will not work\n');
-if (!process.env.FP_SEALED_KEY)  console.warn('⚠️  FP_SEALED_KEY not set — sealed results will fall back to Server API\n');
-if (!process.env.DATABASE_URL)   console.warn('⚠️  DATABASE_URL not set — database features will not work\n');
-if (!process.env.SUSPECT_THRESHOLD)   console.warn('⚠️  SUSPECT_THRESHOLD not set — validation features will not work\n');
+  const res = await fetch(url, { ...opts, headers });
 
+  if (res.status === 401) {
+    const body = await res.json().catch(() => ({}));
+    if (body.reason === 'session_displaced' || body.reason === 'session_expired') {
+      showDisplacedScreen(body.error, body.reason);
+      throw new Error(body.reason);
+    }
+  }
+  return res;
+}
+
+async function doLogout() {
+  try {
+    await fetch('/api/logout', { method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'X-Session-Token': getSessionToken() || '' } });
+  } catch(e) { /* best-effort */ }
+  localStorage.removeItem('fp_session');
+  sessionStorage.clear();
+  window.location.href = '/';
+}
+
+function showDisplacedScreen(message, reason) {
+  const isExpired = reason === 'session_expired';
+  document.body.innerHTML = `
+    <div style="position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;z-index:9999;font-family:'Inter',sans-serif">
+      <div style="font-size:56px;margin-bottom:20px">${isExpired ? '⏰' : '🔒'}</div>
+      <h1 style="font-size:24px;font-weight:700;margin-bottom:12px;color:var(--text)">${isExpired ? 'Session expired' : 'Session ended'}</h1>
+      <p style="font-size:16px;color:var(--muted);line-height:1.7;max-width:440px;margin-bottom:28px">${message || 'Your session has ended. Please sign in again.'}</p>
+      <button onclick="doLogout()" style="padding:13px 36px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">Return to sign in</button>
+    </div>`;
+}
+
+// ── Heartbeat — ping server every 60s to keep session alive ──────────────────
+// Server checks session_last_seen_at; no ping for 5min = session stale.
+function startHeartbeat() {
+  async function ping() {
+    try { await authFetch('/api/session/heartbeat', { method: 'POST' }); }
+    catch(e) { if (e.message !== 'session_displaced' && e.message !== 'session_expired') console.warn('[heartbeat]', e.message); }
+  }
+  ping(); // immediate first ping
+  setInterval(ping, 60 * 1000); // then every 60s
+
+  // Also ping on tab focus (catches tabs that were in the background)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') ping();
+  });
+}
+
+// ── Back/forward cache — re-check session when tab is restored ────────────────
+window.addEventListener('pageshow', async (e) => {
+  if (e.persisted) {
+    // Page restored from back/forward cache — verify session is still valid
+    try { await authFetch('/api/me'); }
+    catch(e) { /* authFetch handles session_displaced */ }
+  }
+});
+
+// Create a new un-cached agent execution every time it is requested
+async function getFpAgent() {
+  const FP = await import(`${FP_URL_PATH}/web/v4/${FP_PUBLIC_KEY}`);
+  // Returning the start() call freshly evaluates the live browser state (like open DevTools)
+  return FP.start({
+        apiKey:    FP_PUBLIC_KEY,
+        region: "ap",
+        endpoints:  FP_URL_PATH,   // routes identification calls through your subdomain
+      });
+}
+
+// Run a fresh v4 identification — returns sealed result for server-side unseal
+async function freshIdentify() {
+  // Completely clear the local cache before making a fresh API call
+  sessionStorage.removeItem('fp_result');
+  
+  const agent       = await getFpAgent();
+  const fingerprint = await agent.get();
+
+  // Capture sealed result (requires sealed key active in Dashboard)
+  let sealedResult = null;
+  if (fingerprint.sealed_result && typeof fingerprint.sealed_result.base64 === 'function') {
+    sealedResult = fingerprint.sealed_result.base64();
+  }
+
+  return {
+    eventId:      fingerprint.event_id  || '',
+    requestId:    fingerprint.event_id  || '', // compat alias
+    sealedResult,
+    // visitor_id is stripped by sealed key — will be returned by server after unseal
+    visitorId:    fingerprint.visitor_id || null,
+  };
+}
+
+const QUESTIONS = [
+  { q:"What does the Fingerprint Visitor ID persist across?", options:["Only within the same browser session","Cookie clears, incognito mode, and VPN changes","Only if the user is logged in","Only within the same IP address"], correct:1 },
+  { q:"Why are Smart Signals only available via the Server API and not the JS agent response?", options:["To prevent client-side tampering and interception","Because they are too large to send to the browser","Smart Signals are available in the JS agent response","For GDPR compliance reasons only"], correct:0 },
+  { q:"What does a 'bad' Bot Detection result indicate?", options:["A known search engine crawler","A legitimate mobile app user","An automation tool like Selenium or Puppeteer","A user behind a VPN"], correct:2 },
+  { q:"What is the Suspect Score?", options:["The confidence score of the visitor identification","A weighted sum of triggered Smart Signals indicating suspicion","The number of times a visitor ID has been seen","A score assigned by the browser's security settings"], correct:1 },
+  { q:"Which HTTP header does Fingerprint use to sign webhook payloads?", options:["X-Fingerprint-Signature","Authorization","X-Webhook-Secret","FPJS-Event-Signature"], correct:3 }
+];
+
+const VIDEOS = [
+  // Real videos from the Fingerprint YouTube channel (@fingerprintjs)
+  // Playlist: youtube.com/watch?v=zeg404AQxJo&list=PLjhozvP52rLPVXsYKtXa4CF9_r4GdaYVs
+  { id:'zeg404AQxJo', title:'Fingerprint Pro — Product Overview',                     meta:'Fingerprint · Product' },
+  { id:'jWX9P5_jZn8', title:'Prevent Multiple Signups with Browser Fingerprinting',   meta:'Fingerprint · Tutorial' },
+  { id:'rF6QOSwjPmU', title:'Browser Fingerprinting in JavaScript',                  meta:'Fingerprint · Developer tutorial' },
+  { id:'mmoW1FVnM6k', title:'FingerprintJS Open Source Library Demo',                meta:'Fingerprint · Open source demo' },
+  { id:'XuKHEC77muA', title:'Why Device Fingerprinting Matters in Fraud Prevention', meta:'Fingerprint · Shorts' },
+  { id:'Na8KBJHbTnY', title:'Bot Detection & Smart Signals Deep Dive',               meta:'Fingerprint · Technical' },
+];
+
+let watchedIds = new Set();
+let state = { watched:0, limit:3, remaining:3, certified:false, certAttempts:0, certScore:null };
+let fpCache = null;
+let currentUser = { email:'', name:'' };
 // ─────────────────────────────────────────────────────────────────────────────
-// CONFIGURATION
+// VALIDATION RULES — edit these values to tune fraud detection behaviour
 // ─────────────────────────────────────────────────────────────────────────────
-const CONFIG = {
-  SIGNAL_TTL_MINUTES:   10,   // Server API cache window
-  SUSPECT_THRESHOLD:    12,   // Suspect score step-up trigger
-  VIDEO_LIMIT:          3,    // Free videos per device
-  HEARTBEAT_TTL_MINS:   5,    // Session considered dead after 5 min no heartbeat
+
+const VALIDATION = {
+  // Suspect score threshold: triggers step-up verification modal.
+  // Score is a weighted sum of signals (see weights below).
+  // Raise this to be more permissive, lower it to be stricter.
+  SUSPECT_THRESHOLD: '__SUSPECT_THRESHOLD__',
+
+  // Individual signal weights used to compute the CLIENT-SIDE suspect score.
+  // (The Server API returns an authoritative score when FP_API_KEY is set.)
+  // These are only used as a fallback if the Server API call fails.
+  SIGNAL_WEIGHTS: {
+    bot:            6,   // automated browser detected
+    vpn:            4,   // VPN usage detected
+    incognito:      3,   // private/incognito browsing mode
+    lowConfidence:  4,   // identification confidence below LOW_CONFIDENCE_CUTOFF
+  },
+
+  // Confidence below this value counts as "low confidence" for scoring
+  LOW_CONFIDENCE_CUTOFF: 0.5,
+
+  // Whether VPN alone (regardless of score) triggers verification on cert submit
+  VPN_BLOCKS_CERT_SUBMIT: true,
+
+  // Whether a timezone mismatch triggers the VPN warning modal on login
+  CHECK_TIMEZONE_MISMATCH: true,
 };
 
-// ── Middleware ────────────────────────────────────────────────────────────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(session({
-  secret:            process.env.SESSION_SECRET || 'fp-university-dev-secret',
-  resave:            false,
-  saveUninitialized: false,
-  cookie:            { maxAge: 24 * 60 * 60 * 1000 },
-}));
-
-function requireAuth(req, res, next) {
-  if (req.session.email && req.session.visitorId) return next();
-  res.status(401).json({ ok: false, error: 'Not authenticated' });
-}
-
-// ── Single-session + heartbeat middleware ─────────────────────────────────────
-async function requireValidSession(req, res, next) {
-  const clientToken = req.headers['x-session-token'];
-  const visitorId   = req.session.visitorId;
-
-  if (!clientToken || !visitorId) return next();
-
-  try {
-    const dev = await getDevice(visitorId);
-
-    // 1. Token mismatch — displaced by a newer login on the same device
-    if (dev?.active_session_token && dev.active_session_token !== clientToken) {
-      return res.status(401).json({
-        ok: false, reason: 'session_displaced',
-        error: 'You have been signed in on another window or device. This session has ended.',
-      });
-    }
-
-    // 2. Heartbeat TTL — session went stale (tab was closed without logout)
-    if (dev?.session_last_seen_at) {
-      const staleMins = (Date.now() - new Date(dev.session_last_seen_at).getTime()) / 60000;
-      if (staleMins > CONFIG.HEARTBEAT_TTL_MINS) {
-        return res.status(401).json({
-          ok: false, reason: 'session_expired',
-          error: 'Your session has expired due to inactivity. Please sign in again.',
-        });
-      }
-    }
-
-    // 3. Cross-device check — has the user logged in from a different device since?
-    if (req.session.email) {
-      const { rows } = await db.query(
-        'SELECT active_visitor_id FROM users WHERE email = $1', [req.session.email]);
-      const activeVid = rows[0]?.active_visitor_id;
-      if (activeVid && activeVid !== visitorId) {
-        return res.status(401).json({
-          ok: false, reason: 'session_displaced',
-          error: 'You have signed in from a different device. This session has ended.',
-        });
-      }
-    }
-  } catch(e) {
-    console.error('[session check]', e.message);
-    // Non-fatal — don't block on DB failure
-  }
-  next();
-}
-
-// Combined auth + session check used by all protected routes
-function requireAuthAndSession(req, res, next) {
-  if (!req.session.email || !req.session.visitorId) {
-    return res.status(401).json({ ok: false, error: 'Not authenticated' });
-  }
-  requireValidSession(req, res, next);
-}
-
-function serveWithKey(res, filename) {
-  // FP_URL_PATH: base URL for the Fingerprint JS agent.
-  // Set to your custom subdomain (e.g. https://metrics.fingerprint-university.com)
-  // or leave blank to fall back to the default Fingerprint CDN.
-  const fpUrlPath = process.env.FP_URL_PATH || 'https://fpjscdn.net';
-  const html = fs.readFileSync(path.join(__dirname, 'public', filename), 'utf8')
-    .replace(/__FP_PUBLIC_KEY__/g, process.env.FP_PUBLIC_KEY || '')
-    .replace(/__FP_URL_PATH__/g,   fpUrlPath)
-    .replace(/__SUSPECT_THRESHOLD__/g,   process.env.SUSPECT_THRESHOLD);
-  res.setHeader('Content-Type', 'text/html');
-  res.send(html);
-}
-
-// ── Pages ─────────────────────────────────────────────────────────────────────
-app.get('/',          (req, res) => { if (req.session.email) return res.redirect('/videos'); serveWithKey(res, 'login.html'); });
-app.get('/videos', (req, res) => {
-  if (!req.session.email) return res.redirect('/');
-  // Prevent back/forward cache restoring a stale authenticated page.
-  // The pageshow listener in videos.html re-validates on persisted restore.
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  serveWithKey(res, 'videos.html');
-});
-app.get('/contact',   (req, res) => serveWithKey(res, 'contact.html'));
-app.get('/admin',     (req, res) => { if (!req.session.email) return res.redirect('/'); serveWithKey(res, 'admin.html'); });
-app.get('/reset-password', (req, res) => serveWithKey(res, 'reset-password.html'));
-app.use(express.static(path.join(__dirname, 'public')));
+// Shorthand used throughout the file — read from config above
+const SUSPECT_THRESHOLD = VALIDATION.SUSPECT_THRESHOLD;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DATABASE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+let suspectAlreadyShown = false;
 
-async function upsertDevice(visitorId, fields = {}) {
-  const { activeEmail, suspectScore, vpn, highActivity, fpSignals, lastApiCallAt,
-          activeSessionToken, sessionStartedAt, sessionLastSeenAt } = fields;
-  await db.query(`
-    INSERT INTO devices
-      (visitor_id, active_email, suspect_score, vpn, high_activity, fp_signals,
-       last_api_call_at, active_session_token, session_started_at, session_last_seen_at, updated_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-    ON CONFLICT (visitor_id) DO UPDATE SET
-      active_email          = COALESCE($2,  devices.active_email),
-      suspect_score         = COALESCE($3,  devices.suspect_score),
-      vpn                   = COALESCE($4,  devices.vpn),
-      high_activity         = COALESCE($5,  devices.high_activity),
-      fp_signals            = COALESCE($6,  devices.fp_signals),
-      last_api_call_at      = COALESCE($7,  devices.last_api_call_at),
-      active_session_token  = COALESCE($8,  devices.active_session_token),
-      session_started_at    = COALESCE($9,  devices.session_started_at),
-      session_last_seen_at  = COALESCE($10, devices.session_last_seen_at),
-      updated_at            = NOW()
-  `, [visitorId,
-      activeEmail          ?? null,
-      suspectScore         ?? null,
-      vpn                  ?? null,
-      highActivity         ?? null,
-      fpSignals            ? JSON.stringify(fpSignals) : null,
-      lastApiCallAt        ?? null,
-      activeSessionToken   ?? null,
-      sessionStartedAt     ?? null,
-      sessionLastSeenAt    ?? null]);
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); document.getElementById('theme-btn').textContent=t==='dark'?'🌙':'☀️'; localStorage.setItem('fp-theme',t); }
+function toggleTheme(){ applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); }
+applyTheme(localStorage.getItem('fp-theme')||'dark');
+
+// ── Helper: Safely updates FP cache and instantly syncs UI across app ─────────
+function updateFpCacheFromSignals(s) {
+  if (!fpCache) return;
+  fpCache.suspectScore = s.suspectScore  ?? fpCache.suspectScore;
+  fpCache.vpn          = s.vpn !== undefined ? s.vpn === true : fpCache.vpn;
+  fpCache.vpnMethods   = s.vpnMethods    ?? fpCache.vpnMethods;
+  fpCache.incognito    = s.incognito !== undefined ? s.incognito === true : fpCache.incognito;
+  fpCache.bot          = s.bot !== undefined ? s.bot === 'bad' : fpCache.bot;
+  fpCache.confidence   = s.confidence    ?? fpCache.confidence;
+  fpCache._ipTimezone  = s.ipTimezone    || s.ipInfo?.v4?.geolocation?.timezone || fpCache._ipTimezone;
+  fpCache._ipCountry   = s.ipCountry     || s.ipInfo?.v4?.geolocation?.country?.name || fpCache._ipCountry;
+  fpCache._lastServerApiCallAt = Date.now();
+  
+  sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+  updateHeaderChips();
 }
 
-async function getDevice(visitorId) {
-  const { rows } = await db.query('SELECT * FROM devices WHERE visitor_id = $1', [visitorId]);
-  return rows[0] || null;
-}
+// ── Tab switching — NO API calls on tab open, cached values only ──────────────
+// API is called at submission time (cert submit, review submit) not on tab switch.
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
 
-// Returns true if the last Server API call for this device is within the TTL window.
-// When true, routes should use DB-cached signals instead of making a fresh API call.
-function signalsAreFresh(dev) {
-  if (!dev?.last_api_call_at) return false;
-  const ageMinutes = (Date.now() - new Date(dev.last_api_call_at).getTime()) / 60000;
-  return ageMinutes < CONFIG.SIGNAL_TTL_MINUTES;
-}
+  if(name==='certify'){
+    // If signals are stale (last sealed call > 2 minutes ago), fetch fresh sealed results.
+    // If signals are fresh (< 2 minutes), use cached fpCache directly.
+    const lastCall  = fpCache?._lastServerApiCallAt || 0;
+    const minsAgo   = lastCall > 0 ? (Date.now() - lastCall) / 60000 : Infinity;
+    const isStale   = minsAgo >= 2;
 
-async function getVideoViews(visitorId, userId) {
-  // All visitor_ids this user has ever logged in with (via identity_links),
-  // plus the current visitorId — then count distinct videos watched across all of them.
-  const { rows } = await db.query(`
-    SELECT DISTINCT vv.video_id
-    FROM video_views vv
-    WHERE vv.visitor_id IN (
-      SELECT il.visitor_id FROM identity_links il
-      WHERE il.user_id = $2
-      UNION SELECT $1
-    )
-  `, [visitorId, userId]);
-  return rows.map(r => r.video_id);
-}
-
-async function getCert(visitorId, userId) {
-  // Return certification for any visitor_id this user has ever used.
-  const { rows } = await db.query(`
-    SELECT * FROM certifications
-    WHERE visitor_id IN (
-      SELECT il.visitor_id FROM identity_links il
-      WHERE il.user_id = $2
-      UNION SELECT $1
-    )
-    ORDER BY submitted_at DESC NULLS LAST
-    LIMIT 1
-  `, [visitorId, userId]);
-  return rows[0] || null;
-}
-
-async function getReview(visitorId, userId) {
-  // Return review for any visitor_id this user has ever used.
-  const { rows } = await db.query(`
-    SELECT * FROM reviews
-    WHERE visitor_id IN (
-      SELECT il.visitor_id FROM identity_links il
-      WHERE il.user_id = $2
-      UNION SELECT $1
-    )
-    ORDER BY submitted_at DESC NULLS LAST
-    LIMIT 1
-  `, [visitorId, userId]);
-  return rows[0] || null;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FINGERPRINT HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-
-async function logFpApiCall(event, visitorId, uiTrigger, signals = {}) {
-  try {
-    await db.query(
-      `INSERT INTO fp_api_log (visitor_id, event, ui_trigger, signals) VALUES ($1,$2,$3,$4)`,
-      [visitorId || null, event, uiTrigger || null, JSON.stringify(signals)]
-    );
-  } catch (e) { console.error('[FP log]', e.message); }
-}
-
-async function saveSmartSignals(visitorId, requestId, uiTrigger, products) {
-  const p     = products || {};
-  const id    = p.identification?.data || {};
-  const bot   = p.botd?.data?.bot || {};
-  const vpnD  = p.vpn?.data || {};
-  const ip4   = p.ipInfo?.data?.v4 || {};
-  const geo   = ip4.geolocation || {};
-  try {
-    await db.query(`
-      INSERT INTO smart_signals (
-        visitor_id,request_id,ui_trigger,
-        confidence,first_seen_at,last_seen_at,
-        incognito,vpn,proxy,tor,tampering,high_activity,location_spoofing,
-        bot_result,bot_type,suspect_score,
-        ip_v4_address,ip_country,ip_city,ip_timezone,vpn_origin_country,raw
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
-      [ visitorId, requestId, uiTrigger || null,
-        id.confidence?.score??null, id.firstSeenAt?.global??null, id.lastSeenAt?.global??null,
-        p.incognito?.data?.result??null, vpnD.result??null, p.proxy?.data?.result??null,
-        p.tor?.data?.result??null, p.tampering?.data?.result??null, p.highActivity?.data?.result??null,
-        p.locationSpoofing?.data?.result??null, bot.result??null, bot.type??null,
-        p.suspectScore?.data?.result??null, ip4.address??null, geo.country?.name??null,
-        geo.city?.name??null, geo.timezone??null, vpnD.originCountry??null,
-        JSON.stringify(products) ]
-    );
-  } catch (e) { console.error('[saveSmartSignals]', e.message); }
-}
-
-function fpServerApiGet(apiPath) {
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'ap.api.fpjs.io', path: apiPath, method: 'GET',
-      headers: { 'Auth-API-Key': process.env.FP_API_KEY, 'Accept': 'application/json' },
-    }, (res) => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => { try { resolve({ status: res.statusCode, body: JSON.parse(data) }); } catch(e) { reject(e); } });
-    });
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-// Core Server API fetch — always calls the API, updates DB, returns flat signals.
-// All routes that need FRESH signals call this directly.
-async function fetchAndCacheSignals(visitorId, requestId, uiTrigger) {
-  if (!process.env.FP_API_KEY) return null;
-  const { status, body } = await fpServerApiGet(`/events/${requestId}`);
-  if (status !== 200) {
-    await logFpApiCall('smart-signals — ERROR', visitorId, uiTrigger, { status, error: body?.error?.message });
-    return null;
-  }
-  const p               = body.products || {};
-  const freshScore      = p.suspectScore?.data?.result ?? null;
-  const freshVpn        = p.vpn?.data?.result === true;
-  const now             = new Date();
-
-  await upsertDevice(visitorId, {
-    suspectScore: freshScore, vpn: freshVpn, lastApiCallAt: now,
-    fpSignals: { suspectScore: freshScore, vpn: freshVpn, lastApiCallAt: now.toISOString() },
-  });
-  await logFpApiCall('smart-signals (Server API)', visitorId, uiTrigger, {
-    incognito: p.incognito?.data?.result, vpn: p.vpn?.data?.result,
-    bot: p.botd?.data?.bot?.result, suspectScore: freshScore,
-  });
-  await saveSmartSignals(visitorId, requestId, uiTrigger, body.products);
-
-  return { products: p, freshScore, freshVpn, raw: body };
-}
-
-// ── Unseal sealed client results ─────────────────────────────────────────────
-// Called when the JS agent (v4) returns a sealed_result blob instead of plain data.
-// Eliminates the separate Server API call at login time — one round trip instead of two.
-// Falls back to the regular Server API if:
-//   - FP_SEALED_KEY is not set
-//   - The SDK is not installed
-//   - Unsealing fails (e.g. wrong key, corrupted blob)
-// ── Unseal sealed client results ─────────────────────────────────────────────
-// Exact implementation from: https://docs.fingerprint.com/docs/sealed-client-results
-// Requires @fingerprint/node-sdk v7.0+
-async function unsealResult(sealedResultBase64) {
-  if (!unsealEventsResponse || !DecryptionAlgorithm) {
-    throw new Error('@fingerprint/node-sdk not available — run: npm install @fingerprint/node-sdk');
-  }
-  if (!process.env.FP_SEALED_KEY) {
-    throw new Error('FP_SEALED_KEY not set in .env');
-  }
-
-  const unsealedData = await unsealEventsResponse(
-    Buffer.from(sealedResultBase64, 'base64'),
-    [
-      {
-        key:       Buffer.from(process.env.FP_SEALED_KEY.trim(), 'base64'),
-        algorithm: DecryptionAlgorithm.Aes256Gcm,
-      },
-    ]
-  );
-
-  console.log('[FP] ✅ Sealed result unsealed successfully');
-  return unsealedData;
-}
-
-// ── Extract flat signals from unsealed v4 payload ─────────────────────────────
-// Structure confirmed from live payload dump — all values are PRIMITIVE (no .result wrapper):
-// bot: "not_detected" | "bad"        (string)
-// vpn: false | true                  (boolean)
-// incognito: false | true            (boolean)
-// suspect_score: 12                  (number)
-// proxy: true | false                (boolean)
-// ip_address: "1.2.3.4"             (string, top-level)
-// ip_info.v4.geolocation.city_name  (note: city_name not city.name)
-// ip_info.v4.geolocation.country_name (note: country_name not country.name)
-// ip_info.v4.geolocation.timezone   (string)
-// identification.visitor_id          (string)
-// identification.confidence.score    (number)
-// identification.first_seen_at       (unix ms)
-// identification.last_seen_at        (unix ms)
-function extractSignalsFromProducts(p) {
-  if (!p) return {};
-
-  // ── v4 sealed format (flat, primitives, snake_case) ──────────────────────────
-  if (p.identification && p.identification.visitor_id !== undefined) {
-    const id  = p.identification;
-    const geo = p.ip_info?.v4?.geolocation || {};
-    const toISO = ms => ms ? new Date(ms).toISOString() : null;
-    return {
-      visitorId:        id.visitor_id          || null,
-      requestId:        p.event_id             || null,
-      confidence:       id.confidence?.score   ?? null,
-      firstSeenAt:      toISO(id.first_seen_at),
-      lastSeenAt:       toISO(id.last_seen_at),
-      // Primitives — NO .result wrapper in v4
-      incognito:        p.incognito            ?? null,   // boolean
-      bot:              p.bot                  ?? null,   // "not_detected" | "bad"
-      botType:          null,                             // not in v4 payload
-      vpn:              p.vpn                  ?? null,   // boolean
-      proxy:            p.proxy                ?? null,   // boolean
-      tor:              p.ip_blocklist?.tor_node ?? null, // boolean (in ip_blocklist)
-      tampering:        p.tampering            ?? null,   // boolean
-      highActivity:     p.high_activity_device ?? null,  // boolean
-      locationSpoofing: null,                             // not in v4 payload
-      suspectScore:     p.suspect_score        ?? null,   // number
-      vpnMethods:       p.vpn_methods          ?? null,
-      originCountry:    null,                             // use vpn_origin_timezone instead
-      // ip_info — note field names: city_name, country_name (not city.name, country.name)
-      ipInfo:           { v4: p.ip_info?.v4, v6: p.ip_info?.v6 },
-      ipTimezone:       geo.timezone           || null,
-      ipCountry:        geo.country_name       || null,   // country_name not country.name
-      ipCity:           geo.city_name          || null,   // city_name not city.name
-      ipAddress:        p.ip_address           || null,   // top-level, not nested
-    };
-  }
-
-  // ── v3 Server API format (nested .data, camelCase) ───────────────────────────
-  // Used when falling back to Server API (Smart Signals tab, cert/review submit)
-  if (p.identification?.data) {
-    const id   = p.identification.data;
-    const bot  = p.botd?.data?.bot || {};
-    const vpnD = p.vpn?.data || {};
-    const ip4  = p.ipInfo?.data?.v4 || {};
-    const geo  = ip4.geolocation || {};
-    return {
-      visitorId:        id.visitorId                    || null,
-      requestId:        id.requestId                    || null,
-      confidence:       id.confidence?.score            ?? null,
-      firstSeenAt:      id.firstSeenAt?.global          ?? null,
-      lastSeenAt:       id.lastSeenAt?.global           ?? null,
-      incognito:        p.incognito?.data?.result       ?? null,
-      bot:              bot.result                      ?? null,
-      botType:          bot.type                        ?? null,
-      vpn:              vpnD.result                     ?? null,
-      vpnMethods:       vpnD.methods                    ?? null,
-      originCountry:    vpnD.originCountry              ?? null,
-      proxy:            p.proxy?.data?.result           ?? null,
-      tor:              p.tor?.data?.result             ?? null,
-      tampering:        p.tampering?.data?.result       ?? null,
-      highActivity:     p.highActivity?.data?.result    ?? null,
-      locationSpoofing: p.locationSpoofing?.data?.result ?? null,
-      suspectScore:     p.suspectScore?.data?.result    ?? null,
-      ipInfo:           { v4: ip4, v6: p.ipInfo?.data?.v6 },
-      ipTimezone:       geo.timezone                    ?? null,
-      ipCountry:        geo.country?.name               ?? null,
-      ipCity:           geo.city?.name                  ?? null,
-      ipAddress:        ip4.address                     ?? null,
-    };
-  }
-
-  console.warn('[FP] extractSignals: unrecognised payload format, keys:', Object.keys(p));
-  return {};
-}
-
-app.post('/api/signup', async (req, res) => {
-  const { email, password, name } = req.body;
-  if (!email || !password || !name)
-    return res.status(400).json({ ok: false, error: 'Email, password and name are required.' });
-  if (password.length < 6)
-    return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters.' });
-  try {
-    const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
-    if (existing.rows.length)
-      return res.status(409).json({ ok: false, error: 'An account with that email already exists.' });
-    const hash = await bcrypt.hash(password, 10);
-    await db.query('INSERT INTO users (email, password_hash, name) VALUES ($1,$2,$3)',
-      [email.toLowerCase().trim(), hash, name.trim()]);
-    // Never echo password or hash back in the response
-    res.json({ ok: true });
-  } catch (e) {
-    console.error('[signup]', e.message);
-    res.status(500).json({ ok: false, error: 'Sign up failed. Please try again.' });
-  }
-});
-
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password)
-    return res.status(400).json({ ok: false, error: 'Email and password are required.' });
-  try {
-    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email.toLowerCase().trim()]);
-    if (!rows.length) return res.status(401).json({ ok: false, error: 'Invalid email or password.' });
-    const match = await bcrypt.compare(password, rows[0].password_hash);
-    if (!match) return res.status(401).json({ ok: false, error: 'Invalid email or password.' });
-    req.session.email  = rows[0].email;
-    req.session.userId = rows[0].id;
-    // Never echo password_hash or any credential back in the response
-    res.json({ ok: true, name: rows[0].name });
-  } catch (e) {
-    console.error('[login]', e.message);
-    res.status(500).json({ ok: false, error: 'Login failed. Please try again.' });
-  }
-});
-
-app.post('/api/logout', async (req, res) => {
-  const vid   = req.session.visitorId;
-  const email = req.session.email;
-  try {
-    if (vid) await db.query(
-      `UPDATE devices SET active_session_token = NULL, active_email = NULL,
-       session_last_seen_at = NULL WHERE visitor_id = $1`, [vid]);
-    if (email) await db.query(
-      'UPDATE users SET active_visitor_id = NULL WHERE email = $1', [email]);
-  } catch(e) { console.error('[logout]', e.message); }
-  req.session.destroy();
-  res.json({ ok: true });
-});
-
-app.post('/api/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ ok: false, error: 'Email is required.' });
-  res.json({ ok: true, message: 'If that email exists, a reset link has been sent.' });
-  try {
-    const { rows } = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
-    if (!rows.length) return;
-    await db.query('UPDATE password_resets SET used = TRUE WHERE email = $1', [email]);
-    const token = crypto.randomBytes(32).toString('hex');
-    await db.query('INSERT INTO password_resets (email, token, expires_at) VALUES ($1,$2,$3)',
-      [email.toLowerCase().trim(), token, new Date(Date.now() + 3600000)]);
-    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
-    console.log(`\n🔑 Password reset link for ${email}:\n   ${resetUrl}\n`);
-  } catch (e) { console.error('[forgot-password]', e.message); }
-});
-
-app.post('/api/reset-password', async (req, res) => {
-  const { token, password } = req.body;
-  if (!token || !password) return res.status(400).json({ ok: false, error: 'Token and password required.' });
-  if (password.length < 6) return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters.' });
-  try {
-    const { rows } = await db.query(
-      `SELECT * FROM password_resets WHERE token = $1 AND used = FALSE AND expires_at > NOW()`, [token]);
-    if (!rows.length) return res.status(400).json({ ok: false, error: 'Reset link is invalid or has expired.' });
-    const hash = await bcrypt.hash(password, 10);
-    await db.query('UPDATE users SET password_hash = $1 WHERE email = $2', [hash, rows[0].email]);
-    await db.query('UPDATE password_resets SET used = TRUE WHERE token = $1', [token]);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ ok: false, error: 'Reset failed.' }); }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FINGERPRINT ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ── Register visitor ID + unseal sealed result ────────────────────────────────
-// Accepts either:
-//   (a) sealedResult (base64 blob from JS agent v4) — decrypted here, no Server API needed
-//   (b) visitorId + requestId (JS agent v3 fallback) — used when sealed key not active yet
-//
-// In both cases, generates a session token, sets active_visitor_id on the user,
-// and returns signals to the client.
-app.post('/api/fp/identify', async (req, res) => {
-  if (!req.session.email) return res.status(401).json({ ok: false, error: 'Login first.' });
-
-  // Diagnostic — log everything that arrives so we can see what the client is sending
-  // Accept exact field names from docs (event_id, sealed_result_base64)
-  // plus fallback camelCase names used before sealed key was active
-  const {
-    sealed_result_base64,          // doc field name (Step 3)
-    sealedResult,                  // our previous field name (fallback)
-    event_id,                      // doc field name
-    eventId,                       // our previous field name
-    visitorId:   rawVisitorId,
-    requestId:   rawRequestId,
-    confidence, incognito, bot, suspectScore, vpn, highActivity,
-  } = req.body;
-
-  const sealedPayload  = sealed_result_base64 || sealedResult || null;
-  const rawRequestId2  = event_id || eventId || rawRequestId;
-
-  try {
-    let signals    = null;
-    let products   = null;
-    let visitorId  = rawVisitorId;
-    let requestId  = rawRequestId2;
-    let usedSealed = false;
-
-    // ── Path A: Sealed result — decrypt server-side ──────────────────────────
-    // IMPORTANT: when sealed key is ACTIVE in Dashboard, the v4 agent strips
-    // visitor_id from the client payload. visitorId must come from the unsealed
-    // result here. If sealedResult is present but FP_SEALED_KEY is not set,
-    // the unseal will fail and we fall through to Path B.
-    if (sealedPayload) {
-      try {
-        const unsealed = await unsealResult(sealedPayload);
-        products  = unsealed;
-        signals   = extractSignalsFromProducts(unsealed);
-        visitorId = signals.visitorId;
-        requestId = signals.requestId || rawRequestId2;
-        usedSealed = true;
-        console.log(`[FP] ✅ Sealed result unsealed — visitorId: ${visitorId}, suspect: ${signals.suspectScore}, vpn: ${signals.vpn}, incognito: ${signals.incognito}`);
-      } catch(sealErr) {
-        console.warn('[FP] Sealed unseal failed:', sealErr.message);
-        // Fallback: call Server API using the eventId to get visitorId + signals.
-        // This happens when: sealed key is active (so client strips visitorId) but
-        // our FP_SEALED_KEY doesn't match yet. The Server API is the safety net.
-        if (rawRequestId2 && process.env.FP_API_KEY) {
-          console.log('[FP] Falling back to Server API using eventId:', rawRequestId2);
-          try {
-            const { status, body } = await fpServerApiGet(`/events/${rawRequestId2}`);
-            console.log('[FP] Server API response status:', status);
-            console.log('[FP] Server API body ok:', !!body, '| has products:', !!(body && body.products));
-            if (status === 200 && body.products) {
-              products  = body.products;
-              signals   = extractSignalsFromProducts(products);
-              visitorId = signals.visitorId;
-              requestId = rawRequestId2;
-              console.log(`[FP] Server API fallback succeeded — visitorId: ${visitorId}`);
-            } else {
-              console.warn('[FP] Server API returned non-200 or no products:', status, JSON.stringify(body).slice(0, 200));
-            }
-          } catch(apiErr) {
-            console.warn('[FP] Server API fallback exception:', apiErr.message);
+    if (fpCache && isStale) {
+      console.log(`[FP] Cert tab: signals are ${Math.round(minsAgo)}min old — fetching fresh sealed result`);
+      // Fire-and-forget sealed call — don't block tab render, update chips when done
+      (async () => {
+        try {
+          const fresh = await freshIdentify();
+          if (!fresh.sealedResult) throw new Error('No sealed result');
+          const sigRes = await authFetch('/api/fp/signals', {
+            method: 'POST',
+            body: JSON.stringify({
+              sealed_result_base64: fresh.sealedResult,
+              event_id: fresh.eventId,
+              uiTrigger: 'certify-tab-click',
+            }),
+          }).then(r => r.json());
+          if (sigRes.ok && sigRes.signals) {
+            const s = sigRes.signals;
+            if (sigRes.fallback) showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API.', 'warn');
+            
+            updateFpCacheFromSignals(s);
+            console.log(`[FP] Cert tab: sealed signals updated — suspect: ${s.suspectScore}, vpn: ${s.vpn}`);
           }
-        } else {
-          console.warn('[FP] Skipping Server API fallback — rawRequestId2:', rawRequestId2, '| FP_API_KEY set:', !!process.env.FP_API_KEY);
+        } catch(e) {
+          console.warn('[FP cert tab sealed]', e.message);
         }
-      }
+        // Run friction check after signals are updated
+        runCertTabValidation();
+      })();
+    } else {
+      if (fpCache) console.log(`[FP] Cert tab: signals fresh (${Math.round(minsAgo*60)}s ago) — using cache`);
+      // Signals are fresh — run validation immediately from cache
+      runCertTabValidation();
     }
+    renderCertTab();
+  } else if(name==='review'){
+    switchToReviewTab();
+  } else {
+    checkSuspectScore(name);
+  }
+}
+function switchDoc(name,item){
+  document.querySelectorAll('.doc-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.docs-nav-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('doc-'+name).classList.add('active');
+  item.classList.add('active');
+}
 
-    // ── Path B: No sealed result and no visitorId ─────────────────────────────
-    // This should only happen if: sealed key is active, sealed decryption failed,
-    // AND Server API fallback failed. Log everything to help diagnose.
-    if (!visitorId) {
-      console.error('[FP] No visitorId available. sealedPayload present:', !!sealedPayload,
-        '| rawVisitorId:', rawVisitorId, '| eventId:', rawRequestId2);
-      return res.status(400).json({
-        ok: false,
-        error: sealedPayload
-          ? 'Could not identify device — sealed decryption failed and Server API fallback failed. Check FP_SEALED_KEY and FP_API_KEY in .env.'
-          : 'visitorId required.',
-      });
+// ── Suspect score ─────────────────────────────────────────────────────────────
+function computeSuspectScore(fp){
+  // Client-side fallback computation — Server API is authoritative when available.
+  // Weights are defined in the VALIDATION config block above.
+  let score = 0; if(!fp) return 0;
+  const w = VALIDATION.SIGNAL_WEIGHTS;
+  if(fp.bot)                                          score += w.bot;
+  if(fp.vpn)                                          score += w.vpn;
+  if(fp.incognito)                                    score += w.incognito;
+  if((fp.confidence ?? 1) < VALIDATION.LOW_CONFIDENCE_CUTOFF) score += w.lowConfidence;
+  return score;
+}
+async function checkSuspectScore(tab){
+  if(!fpCache) return;
+  const score=fpCache.suspectScore!==undefined?fpCache.suspectScore:computeSuspectScore(fpCache);
+  try{ await authFetch('/api/fp/suspect',{method:'POST',body:JSON.stringify({suspectScore:score,vpn:fpCache.vpn||false,highActivity:fpCache.highActivity||false,tab})}); }catch(e){}
+  if(score>=SUSPECT_THRESHOLD&&!suspectAlreadyShown){ suspectAlreadyShown=true; showSuspectModal(score); }
+}
+function showSuspectModal(score){
+  document.getElementById('suspect-score-badge').textContent=`Suspect score: ${score} (threshold: ${SUSPECT_THRESHOLD})`;
+  const sigs=[];
+  if(fpCache?.bot) sigs.push({label:'Bot detected',cls:'red'});
+  if(fpCache?.vpn) sigs.push({label:'VPN active',cls:'amber'});
+  if(fpCache?.incognito) sigs.push({label:'Incognito mode',cls:'amber'});
+  if(fpCache?.confidence<0.5) sigs.push({label:'Low confidence',cls:'amber'});
+  document.getElementById('suspect-signals-list').innerHTML=sigs.map(s=>`<span class="sig-chip ${s.cls}">${s.label}</span>`).join('');
+  document.getElementById('suspect-modal').classList.add('open');
+}
+function closeSuspectModal(){ document.getElementById('suspect-modal').classList.remove('open'); }
+function closeSuspectAndProceed(){
+  closeSuspectModal();
+  if(window._suspectModalResolve){ window._suspectModalResolve(true); window._suspectModalResolve = null; }
+}
+function closeSuspectAndDismiss(){
+  closeSuspectModal();
+  if(window._suspectModalResolve){ window._suspectModalResolve(false); window._suspectModalResolve = null; }
+}
+function sendVerificationCode(){
+  alert(`A verification code has been sent to ${currentUser.email}.\n\n(Demo only — no email sent)`);
+}
+
+// ── Load state ────────────────────────────────────────────────────────────────
+async function loadMe(){
+  const data=await authFetch('/api/me').then(r=>r.json());
+  if(!data.ok){ window.location.href='/'; return; }
+  currentUser={email:data.email,name:data.name};
+  document.getElementById('user-name').textContent=data.name;
+  watchedIds=new Set(data.watchedIds||[]);
+  state={watched:data.videosWatched,limit:data.freeLimit,remaining:data.remaining,certified:data.certified,certAttempts:data.certAttempts,certScore:data.certScore,certSubmittedAt:data.certSubmittedAt||null};
+  const cached=sessionStorage.getItem('fp_result');
+  if(cached){
+    fpCache=JSON.parse(cached);
+  } else {
+    // No sessionStorage cache — seed fpCache from server's cached signals
+    fpCache = {};
+  }
+  // Always merge cachedSignals from server into fpCache.
+  // This ensures correct signals are shown even when sessionStorage has stale client-side
+  // guesses (e.g. incognito=false from v4 agent before sealed result was decrypted).
+  if (data.cachedSignals) {
+    const cs = data.cachedSignals;
+    // Always overwrite these with server-authoritative values
+    fpCache.visitorId    = cs.visitorId    || data.visitorId || fpCache.visitorId || null;
+    fpCache.confidence   = cs.confidence   ?? fpCache.confidence   ?? 0;
+    fpCache.incognito    = cs.incognito    ?? fpCache.incognito    ?? false;
+    fpCache.vpn          = cs.vpn          ?? fpCache.vpn          ?? false;
+    // bot stored as "notDetected"/"bad" string in DB; convert to boolean for client
+    fpCache.bot          = cs.bot === 'bad' ? true : (cs.bot != null ? false : fpCache.bot ?? false);
+    fpCache.suspectScore = cs.suspectScore ?? fpCache.suspectScore ?? 0;
+    // Only fill in IP fields if missing
+    if (!fpCache._ipTimezone)  fpCache._ipTimezone  = cs._ipTimezone  || null;
+    if (!fpCache._ipCountry)   fpCache._ipCountry   = cs._ipCountry   || null;
+    if (!fpCache._ipCity)      fpCache._ipCity      = cs._ipCity      || null;
+    if (!fpCache._ipAddress)   fpCache._ipAddress   = cs._ipAddress   || null;
+    if (!fpCache._lastServerApiCallAt) fpCache._lastServerApiCallAt = cs._lastServerApiCallAt || null;
+    sessionStorage.setItem('fp_result', JSON.stringify(fpCache));
+  }
+  if (fpCache.visitorId) {
+    updateHeaderChips();
+    await checkSuspectScore('videos');
+  } else {
+    document.getElementById('fp-vid-large').textContent = 'not cached — log in again';
+  }
+  updateStats(); updateCertStats(); renderGrid();
+  if(state.remaining===0) setTimeout(openPaywall,800);
+  startHeartbeat();
+}
+
+// ── Update the visitor ID card chips from current fpCache ─────────────────────
+function updateHeaderChips(){
+  if(!fpCache) return;
+  const conf = fpCache.confidence ?? 0;
+  const chipsHtml = `
+    <span class="sig-chip ${conf>0.7?'green':'amber'}">conf: ${(conf*100).toFixed(0)}%</span>
+    <span class="sig-chip ${fpCache.incognito?'amber':'green'}">incognito: ${fpCache.incognito?'yes':'no'}</span>
+    <span class="sig-chip ${fpCache.bot?'red':'green'}">bot: ${fpCache.bot?'detected':'none'}</span>
+    <span class="sig-chip ${fpCache.vpn?'amber':'green'}">vpn: ${fpCache.vpn?'yes':'no'}</span>
+    <span class="sig-chip ${(fpCache.suspectScore||0)>=SUSPECT_THRESHOLD?'red':'green'}">suspect: ${fpCache.suspectScore||0}</span>
+  `;
+  // Video tab panel
+  const vidEl = document.getElementById('fp-vid-large');
+  const chipsEl = document.getElementById('fp-chips');
+  if(vidEl)   vidEl.textContent   = fpCache.visitorId || '–';
+  if(chipsEl) chipsEl.innerHTML   = chipsHtml;
+  // Cert tab panel (same data, different DOM elements)
+  const certVidEl   = document.getElementById('cert-vid-large');
+  const certChipsEl = document.getElementById('cert-fp-chips');
+  if(certVidEl)   certVidEl.textContent = fpCache.visitorId || '–';
+  if(certChipsEl) certChipsEl.innerHTML = chipsHtml;
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  const {watched,limit,remaining}=state;
+  const wEl=document.getElementById('watched-val'); wEl.textContent=watched; wEl.className='stat-value '+(watched>=limit?'red':watched===limit-1?'amber':'green');
+  const rEl=document.getElementById('remaining-val'); rEl.textContent=remaining; rEl.className='stat-value '+(remaining===0?'red':remaining===1?'amber':'green');
+  document.getElementById('dots-sub').textContent=`${watched} / ${limit} used`;
+  for(let i=1;i<=limit;i++){ const d=document.getElementById('dot-'+i); if(!d) continue; d.classList.remove('watched','last'); if(i<=watched) d.classList.add(i===watched&&remaining===0?'last':'watched'); }
+  document.getElementById('upgrade-nudge').classList.toggle('show',remaining===0);
+}
+
+// ── Video grid ────────────────────────────────────────────────────────────────
+function renderGrid(){
+  const grid=document.getElementById('video-grid');
+  grid.innerHTML=VIDEOS.map(v=>{
+    const isWatched=watchedIds.has(v.id),isLocked=state.remaining===0&&!isWatched;
+    const thumb=`https://img.youtube.com/vi/${v.id}/mqdefault.jpg`;
+    return `<div class="video-card${isLocked?' locked':''}">
+      <div class="thumb-wrap" onclick="${isLocked?'openPaywall()':
+        `playVideo('${v.id}','${v.title.replace(/'/g,"\\'")}')` }">
+        <img src="${thumb}" alt="${v.title}" loading="lazy"/>
+        ${isLocked
+          ?`<div class="lock-overlay"><span style="font-size:28px">🔒</span><span class="lock-text">Subscribe to unlock</span></div>`
+          :`<div class="play-overlay">${isWatched?'<span class="rewatch-badge">↩ Rewatch</span>':''}
+             <div class="play-circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
+           </div>`}
+      </div>
+      <div class="video-info">
+        <div class="video-title">${v.title}</div>
+        <div class="video-meta">${v.meta}</div>
+        ${isWatched?'<div class="watched-tag">✓ Watched — click to rewatch</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function playVideo(videoId,title){
+  const res=await authFetch('/api/video/watch',{method:'POST',body:JSON.stringify({videoId})}).then(r=>r.json());
+  if(!res.ok){ state.remaining=0; state.watched=state.limit; updateStats(); renderGrid(); openPaywall(); return; }
+  watchedIds=new Set(res.watchedIds||[...watchedIds,videoId]);
+  state.watched=res.watched; state.remaining=res.remaining;
+  updateStats(); renderGrid();
+  if(res.remaining===0&&!res.rewatch) setTimeout(openPaywall,1200);
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-iframe').src=`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+  document.getElementById('video-modal').classList.add('open');
+}
+function closeVideoModal(){ document.getElementById('video-modal').classList.remove('open'); document.getElementById('modal-iframe').src=''; }
+document.getElementById('video-modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeVideoModal(); });
+
+// ── Paywall ───────────────────────────────────────────────────────────────────
+function openPaywall(){ document.getElementById('paywall-modal').classList.add('open'); }
+function closePaywall(){ document.getElementById('paywall-modal').classList.remove('open'); }
+document.getElementById('paywall-modal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closePaywall(); });
+
+// ── Cert tab state ────────────────────────────────────────────────────────────
+let quizAnswers   = new Array(QUESTIONS.length).fill(-1);  // -1 = unanswered
+let quizCurrent   = 0;       // index of displayed question
+let quizTimerSecs = 5 * 60;  // 5 minutes
+let quizTimerID   = null;
+let quizTimerPaused = false;
+let quizStarted   = false;
+let pendingAnswers = null;    // saved while verify modal is open
+
+// ── renderCertTab — shows correct screen based on device state ────────────────
+function renderCertTab(){
+  // Hide all sections first
+  document.getElementById('cert-already-banner').style.display    = 'none';
+  document.getElementById('cert-no-attempts-banner').style.display = 'none';
+  document.getElementById('quiz-start-screen').style.display      = 'none';
+  document.getElementById('quiz-chrome').classList.remove('active');
+
+  if(state.certified){
+    document.getElementById('cert-already-banner').style.display = 'block';
+    document.getElementById('cert-already-score').textContent =
+      `You scored ${state.certScore||'4+'}/5 on this device. Your certificate is ready.`;
+    return;
+  }
+  if(state.certAttempts >= 1){
+    document.getElementById('cert-no-attempts-banner').style.display = 'block';
+    return;
+  }
+  if(quizStarted){
+    // Quiz already in progress — restore it
+    document.getElementById('quiz-chrome').classList.add('active');
+    renderActiveQuestion();
+  } else {
+    document.getElementById('quiz-start-screen').style.display = 'block';
+  }
+}
+
+// ── Start the quiz ────────────────────────────────────────────────────────────
+function startQuiz(){
+  quizStarted   = true;
+  quizAnswers   = new Array(QUESTIONS.length).fill(-1);
+  quizCurrent   = 0;
+  quizTimerSecs = 5 * 60;
+  quizTimerPaused = false;
+
+  document.getElementById('quiz-start-screen').style.display = 'none';
+  document.getElementById('quiz-chrome').classList.add('active');
+  buildProgressDots();
+  renderActiveQuestion();
+  startTimer();
+}
+
+// ── Timer ─────────────────────────────────────────────────────────────────────
+function startTimer(){
+  if(quizTimerID) clearInterval(quizTimerID);
+  quizTimerID = setInterval(() => {
+    if(quizTimerPaused) return;
+    quizTimerSecs--;
+    renderTimer();
+    if(quizTimerSecs <= 0){
+      clearInterval(quizTimerID);
+      autoSubmit();
     }
+  }, 1000);
+}
 
-    const sessionToken = crypto.randomUUID();
-    const now          = new Date();
+function renderTimer(){
+  const el  = document.getElementById('quiz-timer');
+  if(!el) return;
+  const m   = Math.floor(quizTimerSecs / 60);
+  const s   = quizTimerSecs % 60;
+  el.textContent = `⏱ ${m}:${String(s).padStart(2,'0')}`;
+  el.className = 'quiz-timer' + (quizTimerSecs <= 60 ? ' danger' : quizTimerSecs <= 120 ? ' warn' : '');
+}
 
-    // freshScore/freshVpn for device record columns
-    // suspectScore from sealed may be null if the Smart Signal isn't enabled on the account.
-    // In that case compute a client-side estimate from the available signals.
-    const computedSuspectScore = () => {
-      const s = signals || {};
-      let score = 0;
-      if (s.bot === 'bad')              score += 6;
-      if (s.vpn === true)               score += 4;
-      if (s.incognito === true)         score += 3;
-      if ((s.confidence ?? 1) < 0.5)   score += 4;
-      if (s.tampering === true)         score += 3;
-      if (s.proxy === true)             score += 2;
-      if (s.tor === true)               score += 3;
-      return score;
-    };
+function pauseTimer(){ quizTimerPaused = true; }
+function resumeTimer(){ quizTimerPaused = false; }
 
-    const freshScore    = signals?.suspectScore ?? (signals ? computedSuspectScore() : (suspectScore ?? 0));
-    const freshVpn      = signals?.vpn          ?? vpn          ?? false;
-    const freshIncognito= signals?.incognito     ?? incognito    ?? null;
-    const freshBot      = signals?.bot           ?? bot          ?? null;
-    const freshConf     = signals?.confidence    ?? confidence   ?? null;
+async function autoSubmit(){
+  // Time's up — submit whatever is filled
+  await doSubmitToServer(quizAnswers);
+}
 
-    // fpSignals stored in devices.fp_signals JSONB — use consistent field names
-    // so /api/me cachedSignals can read them back without mapping
-    const fpSignals = {
-      source:       usedSealed ? 'sealed' : 'js-agent',
-      cachedAt:     Date.now(),
-      requestId:    requestId  || null,
-      visitorId:    visitorId  || null,
-      confidence:   freshConf,
-      incognito:    freshIncognito,
-      bot:          freshBot,           // "notDetected", "bad", or null
-      vpn:          freshVpn,           // boolean
-      suspectScore: freshScore,
-      ipTimezone:   signals?.ipTimezone || null,
-      ipCountry:    signals?.ipCountry  || null,
-      ipCity:       signals?.ipCity     || null,
-      ipAddress:    signals?.ipAddress  || null,
-    };
+// ── Progress dots ─────────────────────────────────────────────────────────────
+function buildProgressDots(){
+  const wrap = document.getElementById('q-dots');
+  wrap.innerHTML = QUESTIONS.map((_,i) =>
+    `<div class="q-dot${i===quizCurrent?' current':''}" onclick="jumpToQuestion(${i})" title="Q${i+1}"></div>`
+  ).join('');
+}
 
-    // Persist device record with session token
-    await upsertDevice(visitorId, {
-      activeEmail:         req.session.email,
-      suspectScore:        freshScore,
-      vpn:                 freshVpn,
-      highActivity:        signals?.highActivity ?? highActivity ?? false,
-      fpSignals,
-      activeSessionToken:  sessionToken,
-      sessionStartedAt:    now,
-      sessionLastSeenAt:   now,  // initialise heartbeat
-      lastApiCallAt:       usedSealed ? now : undefined,  // sealed = fresh signals
-    });
-
-    // Cross-device enforcement: mark this device as the active one for this user
-    await db.query(
-      'UPDATE users SET active_visitor_id = $1 WHERE email = $2',
-      [visitorId, req.session.email]
-    );
-
-    req.session.visitorId = visitorId;
-
-    // ── Identity link — record this visitor_id against this user ──────────────
-    // ON CONFLICT DO NOTHING means we never update existing rows — purely additive.
-    // Every device a user logs in with gets its own row. Lookups query all of them.
-    try {
-      await db.query(
-        `INSERT INTO identity_links (user_id, visitor_id)
-         VALUES ($1, $2)
-         ON CONFLICT DO NOTHING`,
-        [req.session.userId, visitorId]
-      );
-      console.log(`[login] identity_links: user ${req.session.userId} ↔ visitor ${visitorId}`);
-    } catch(e) {
-      console.warn('[login] identity_links insert failed (non-fatal):', e.message);
-    }
-
-    // Persist signals to smart_signals table when we have them
-    if (usedSealed && signals) {
-      try {
-        await db.query(`
-          INSERT INTO smart_signals (
-            visitor_id, request_id, ui_trigger,
-            confidence, first_seen_at, last_seen_at,
-            incognito, vpn, proxy, tor, tampering, high_activity, location_spoofing,
-            bot_result, bot_type, suspect_score,
-            ip_v4_address, ip_country, ip_city, ip_timezone, vpn_origin_country, raw
-          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
-          [ visitorId, requestId, 'sign-in-sealed',
-            signals.confidence ?? null, signals.firstSeenAt ?? null, signals.lastSeenAt ?? null,
-            signals.incognito ?? null, signals.vpn ?? null, signals.proxy ?? null,
-            signals.tor ?? null, signals.tampering ?? null, signals.highActivity ?? null,
-            signals.locationSpoofing ?? null, signals.bot ?? null, signals.botType ?? null,
-            signals.suspectScore ?? null, signals.ipAddress ?? null, signals.ipCountry ?? null,
-            signals.ipCity ?? null, signals.ipTimezone ?? null, signals.originCountry ?? null,
-            JSON.stringify(products || {}) ]);
-      } catch(e) { console.error('[saveSmartSignals sealed]', e.message); }
-    }
-
-    await logFpApiCall(
-      usedSealed ? 'identify (sealed result)' : 'identify (JS agent)',
-      visitorId, 'sign-in-button',
-      { email: req.session.email, suspectScore: freshScore, vpn: freshVpn,
-        incognito: signals?.incognito ?? incognito, bot: signals?.bot ?? bot, usedSealed }
-    );
-
-    res.json({
-      ok: true, visitorId, sessionToken, usedSealed,
-      suspectScore: freshScore,
-      // Return flat signals to client so it can update sessionStorage
-      // (only safe to expose because sealed result is server-verified)
-      signals: usedSealed ? signals : null,
-    });
-  } catch (e) {
-    console.error('[fp/identify]', e.message);
-    res.status(500).json({ ok: false, error: 'Identification failed.' });
-  }
-});
-
-// ── Sealed signals — authenticated (cert submit, review submit) ───────────────
-// Accepts sealed_result_base64 from v4 agent, unseals server-side, returns flat
-// signals. Updates devices.fp_signals with fresh values. No session management.
-app.post('/api/fp/signals', requireAuthAndSession, async (req, res) => {
-  const { sealed_result_base64, event_id, uiTrigger } = req.body;
-  if (!sealed_result_base64 && !event_id)
-    return res.status(400).json({ ok: false, error: 'sealed_result_base64 or event_id required.' });
-
-  const vid = req.session.visitorId;
-  let signals    = null;
-  let usedSealed = false;
-  let fallback   = false;
-
-  // ── Path A: Unseal sealed result ─────────────────────────────────────────────
-  if (sealed_result_base64) {
-    try {
-      const unsealed = await unsealResult(sealed_result_base64);
-      signals   = extractSignalsFromProducts(unsealed);
-      usedSealed = true;
-      console.log(`[FP /signals sealed] ${uiTrigger} — visitorId: ${signals.visitorId}, suspect: ${signals.suspectScore}, vpn: ${signals.vpn}`);
-    } catch(sealErr) {
-      console.warn(`[FP /signals] Sealed unseal failed (${uiTrigger}): ${sealErr.message}`);
-      fallback = true;
-    }
-  }
-
-  // ── Path B: Server API fallback ───────────────────────────────────────────────
-  if (!signals && event_id && process.env.FP_API_KEY) {
-    try {
-      console.log(`[FP /signals] Falling back to Server API for event ${event_id}`);
-      const { status, body } = await fpServerApiGet(`/events/${event_id}`);
-      if (status === 200 && body.products) {
-        signals = extractSignalsFromProducts(body.products);
-        console.log(`[FP /signals] Server API fallback succeeded — visitorId: ${signals.visitorId}`);
-      } else {
-        console.warn(`[FP /signals] Server API returned ${status}`);
-      }
-    } catch(apiErr) {
-      console.warn(`[FP /signals] Server API fallback failed: ${apiErr.message}`);
-    }
-  }
-
-  if (!signals) {
-    return res.status(500).json({
-      ok: false,
-      error: 'Both sealed decryption and Server API fallback failed. Check FP_SEALED_KEY and FP_API_KEY in .env.',
-      usedSealed: false, fallback: true,
-    });
-  }
-
-  // Update device record with fresh signals
-  if (vid) {
-    await upsertDevice(vid, {
-      suspectScore: signals.suspectScore ?? 0,
-      vpn:          signals.vpn ?? false,
-      fpSignals: {
-        source: usedSealed ? 'sealed' : 'server-api-fallback',
-        cachedAt: Date.now(), requestId: signals.requestId, visitorId: signals.visitorId,
-        confidence: signals.confidence, incognito: signals.incognito,
-        bot: signals.bot, vpn: signals.vpn, suspectScore: signals.suspectScore,
-        ipTimezone: signals.ipTimezone, ipCountry: signals.ipCountry,
-        ipCity: signals.ipCity, ipAddress: signals.ipAddress,
-      },
-      lastApiCallAt: new Date(),
-    }).catch(e => console.error('[upsertDevice signals]', e.message));
-  }
-
-  await logFpApiCall(
-    usedSealed ? `signals/sealed (${uiTrigger})` : `signals/server-api-fallback (${uiTrigger})`,
-    vid || signals.visitorId, uiTrigger || 'unknown',
-    { suspectScore: signals.suspectScore, vpn: signals.vpn, incognito: signals.incognito, bot: signals.bot }
-  );
-
-  res.json({ ok: true, signals, updatedSuspectScore: signals.suspectScore, usedSealed, fallback });
-});
-
-app.post('/api/fp/signals/public', async (req, res) => {
-  const { sealed_result_base64, event_id, uiTrigger } = req.body;
-  if (!sealed_result_base64 && !event_id)
-    return res.status(400).json({ ok: false, error: 'sealed_result_base64 or event_id required.' });
-
-  let signals    = null;
-  let usedSealed = false;
-  let fallback   = false;
-
-  // ── Path A: Unseal sealed result ─────────────────────────────────────────────
-  if (sealed_result_base64) {
-    try {
-      const unsealed = await unsealResult(sealed_result_base64);
-      signals    = extractSignalsFromProducts(unsealed);
-      usedSealed = true;
-      console.log(`[FP /signals/public sealed] visitorId: ${signals.visitorId}, suspect: ${signals.suspectScore}`);
-    } catch(sealErr) {
-      console.warn(`[FP /signals/public] Sealed unseal failed: ${sealErr.message}`);
-      fallback = true;
-    }
-  }
-
-  // ── Path B: Server API fallback ───────────────────────────────────────────────
-  if (!signals && event_id && process.env.FP_API_KEY) {
-    try {
-      console.log(`[FP /signals/public] Falling back to Server API for event ${event_id}`);
-      const { status, body } = await fpServerApiGet(`/events/${event_id}`);
-      if (status === 200 && body.products) {
-        signals = extractSignalsFromProducts(body.products);
-        console.log(`[FP /signals/public] Server API fallback succeeded — visitorId: ${signals.visitorId}`);
-      }
-    } catch(apiErr) {
-      console.warn(`[FP /signals/public] Server API fallback failed: ${apiErr.message}`);
-    }
-  }
-
-  if (!signals) {
-    return res.status(500).json({ ok: false, error: 'Both sealed decryption and Server API fallback failed.', usedSealed: false, fallback: true });
-  }
-
-  await logFpApiCall(
-    usedSealed ? 'signals/public (sealed)' : 'signals/public (server-api-fallback)',
-    signals.visitorId, uiTrigger || 'contact-form',
-    { suspectScore: signals.suspectScore, vpn: signals.vpn, incognito: signals.incognito, bot: signals.bot }
-  );
-
-  res.json({ ok: true, signals, updatedSuspectScore: signals.suspectScore, usedSealed, fallback });
-});
-// The requireValidSession middleware checks session_last_seen_at against
-// HEARTBEAT_TTL_MINS. No heartbeat for 5 min = session considered stale.
-app.post('/api/session/heartbeat', requireAuthAndSession, async (req, res) => {
-  const vid = req.session.visitorId;
-  if (!vid) return res.json({ ok: true }); // no visitorId yet — still logging in
-  try {
-    await db.query(
-      'UPDATE devices SET session_last_seen_at = NOW() WHERE visitor_id = $1', [vid]);
-    res.json({ ok: true, ts: new Date().toISOString() });
-  } catch(e) {
-    console.error('[heartbeat]', e.message);
-    res.json({ ok: true }); // non-fatal
-  }
-});
-
-// ── /api/me ───────────────────────────────────────────────────────────────────
-app.get('/api/me', async (req, res) => {
-  if (!req.session.email) return res.status(401).json({ ok: false });
-
-  // Check session token displacement
-  const clientToken = req.headers['x-session-token'];
-  const vid         = req.session.visitorId;
-  if (clientToken && vid) {
-    try {
-      const dev = await getDevice(vid);
-      if (dev?.active_session_token && dev.active_session_token !== clientToken) {
-        return res.status(401).json({
-          ok: false, reason: 'session_displaced',
-          error: 'You have been signed in on another window or device. This session has ended.',
-        });
-      }
-    } catch(e) { /* non-fatal */ }
-  }
-  try {
-    const { rows: userRows } = await db.query('SELECT name FROM users WHERE email = $1', [req.session.email]);
-    if (!userRows.length) return res.status(401).json({ ok: false });
-    const vid = req.session.visitorId;
-    if (!vid) {
-      return res.json({ ok: true, email: req.session.email, name: userRows[0].name, visitorId: null,
-        freeLimit: CONFIG.VIDEO_LIMIT, videosWatched: 0, remaining: CONFIG.VIDEO_LIMIT, watchedIds: [],
-        certified: false, certAttempts: 0, certScore: null, certSubmittedAt: null, suspectScore: 0 });
-    }
-    const [dev, watchedIds, cert] = await Promise.all([
-      getDevice(vid),
-      getVideoViews(vid, req.session.userId),
-      getCert(vid, req.session.userId),
-    ]);
-    // Parse fp_signals for client-side fpCache seeding
-    const fpSigs = dev?.fp_signals || {};
-    res.json({
-      ok: true, email: req.session.email, name: userRows[0].name, visitorId: vid,
-      freeLimit:       CONFIG.VIDEO_LIMIT,
-      videosWatched:   watchedIds.length,
-      remaining:       Math.max(0, CONFIG.VIDEO_LIMIT - watchedIds.length),
-      watchedIds,
-      certified:       cert?.passed       || false,
-      certAttempts:    cert?.attempts     || 0,
-      certScore:       cert?.score        ?? null,
-      certSubmittedAt: cert?.submitted_at || null,
-      suspectScore:    dev?.suspect_score || 0,
-      signalsFresh:    signalsAreFresh(dev),
-      lastApiCallAt:   dev?.last_api_call_at || null,
-      // Return cached signals so client can seed fpCache even if sessionStorage is stale
-      cachedSignals: {
-        visitorId:    vid,
-        confidence:   fpSigs.confidence   ?? null,
-        incognito:    fpSigs.incognito     ?? null,
-        vpn:          fpSigs.vpn           ?? null,
-        bot:          fpSigs.bot           ?? null,  // "notDetected", "bad", or null
-        suspectScore: dev?.suspect_score   ?? 0,
-        _ipTimezone:  fpSigs.ipTimezone    || null,
-        _ipCountry:   fpSigs.ipCountry     || null,
-        _ipCity:      fpSigs.ipCity        || null,
-        _ipAddress:   fpSigs.ipAddress     || null,
-        _lastServerApiCallAt: dev?.last_api_call_at ? new Date(dev.last_api_call_at).getTime() : null,
-      },
-    });
-  } catch (e) {
-    console.error('[/api/me]', e.message);
-    res.status(500).json({ ok: false, error: 'Failed to load profile.' });
-  }
-});
-
-// ── Smart Signals — respects TTL cache ───────────────────────────────────────
-// Clients should pass ?requestId=... for a fresh call.
-// If no requestId is passed AND signals are fresh, returns cached DB values.
-app.get('/api/smart-signals', requireAuthAndSession, async (req, res) => {
-  const vid       = req.session.visitorId;
-  const dev       = await getDevice(vid);
-  const requestId = req.query.requestId || dev?.fp_signals?.requestId;
-  const uiTrigger = req.query.uiTrigger || 'unknown';
-
-  if (!requestId)
-    return res.status(400).json({ ok: false, error: 'No requestId on record. Please log out and log in again.' });
-  if (!process.env.FP_API_KEY)
-    return res.status(503).json({ ok: false, error: 'FP_API_KEY not configured.' });
-
-  // If a fresh requestId was passed by the client, always fetch.
-  // If using the stored requestId and signals are still fresh, return cached values.
-  const isOnDemand = !!req.query.requestId;
-  if (!isOnDemand && signalsAreFresh(dev)) {
-    console.log(`[FP] Signals fresh for ${vid} — serving from DB cache`);
-    return res.json({
-      ok: true, cached: true,
-      signals: {
-        visitorId:    vid,
-        suspectScore: dev.suspect_score,
-        vpn:          dev.vpn,
-        incognito:    dev.fp_signals?.incognito,
-        bot:          dev.fp_signals?.bot,
-        confidence:   dev.fp_signals?.confidence,
-      },
-      requestId,
-      updatedSuspectScore: dev.suspect_score,
-      updatedVpn:          dev.vpn,
-    });
-  }
-
-  try {
-    const result = await fetchAndCacheSignals(vid, requestId, uiTrigger);
-    if (!result)
-      return res.status(503).json({ ok: false, error: 'Server API unavailable.' });
-
-    const { products: p, freshScore, freshVpn } = result;
-    const flat = {
-      visitorId:        p.identification?.data?.visitorId,
-      confidence:       p.identification?.data?.confidence?.score,
-      firstSeenAt:      p.identification?.data?.firstSeenAt?.global,
-      lastSeenAt:       p.identification?.data?.lastSeenAt?.global,
-      incognito:        p.incognito?.data?.result,
-      bot:              p.botd?.data?.bot?.result,
-      botType:          p.botd?.data?.bot?.type,
-      vpn:              p.vpn?.data?.result,
-      vpnMethods:       p.vpn?.data?.methods,
-      originCountry:    p.vpn?.data?.originCountry,
-      proxy:            p.proxy?.data?.result,
-      tor:              p.tor?.data?.result,
-      tampering:        p.tampering?.data?.result,
-      highActivity:     p.highActivity?.data?.result,
-      locationSpoofing: p.locationSpoofing?.data?.result,
-      suspectScore:     freshScore,
-      ipInfo:           { v4: p.ipInfo?.data?.v4, v6: p.ipInfo?.data?.v6 },
-    };
-    res.json({ ok: true, cached: false, signals: flat, requestId,
-      updatedSuspectScore: freshScore, updatedVpn: freshVpn });
-  } catch (e) {
-    console.error('[smart-signals]', e.message);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
-// ── Suspect score cache update (client-side computed score) ───────────────────
-app.post('/api/fp/suspect', requireAuthAndSession, async (req, res) => {
-  const { suspectScore, vpn, highActivity, tab } = req.body;
-  try {
-    const dev = await getDevice(req.session.visitorId);
-    await upsertDevice(req.session.visitorId, {
-      suspectScore: suspectScore ?? dev?.suspect_score,
-      vpn:          vpn !== undefined ? vpn : dev?.vpn,
-      highActivity: highActivity !== undefined ? highActivity : dev?.high_activity,
-      fpSignals:    { ...dev?.fp_signals, lastCheckedTab: tab, lastCheckedAt: Date.now() },
-    });
-    res.json({ ok: true, suspectScore: suspectScore ?? dev?.suspect_score });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
-});
-
-// ── Smart Signals — public endpoint (no auth, used by contact page) ───────────
-// Calls the Server API using the requestId and returns signals.
-// No session token required — used pre-login on the contact form.
-app.get('/api/smart-signals/public', async (req, res) => {
-  const { requestId, uiTrigger } = req.query;
-  if (!requestId) return res.status(400).json({ ok: false, error: 'requestId required.' });
-  if (!process.env.FP_API_KEY) return res.status(503).json({ ok: false, error: 'FP_API_KEY not configured.' });
-
-  try {
-    const { status, body } = await fpServerApiGet(`/events/${requestId}`);
-    if (status !== 200)
-      return res.status(status).json({ ok: false, error: body?.error?.message || 'Server API error' });
-
-    const p = body.products || {};
-    const freshScore = p.suspectScore?.data?.result ?? null;
-    const freshVpn   = p.vpn?.data?.result === true;
-    const ipV4       = p.ipInfo?.data?.v4 || {};
-    const geo        = ipV4.geolocation   || {};
-
-    await logFpApiCall('smart-signals/public (Server API)', null, uiTrigger || 'contact-form', {
-      suspectScore: freshScore, vpn: freshVpn,
-      incognito: p.incognito?.data?.result,
-      bot: p.botd?.data?.bot?.result,
-    });
-
-    res.json({
-      ok: true,
-      updatedSuspectScore: freshScore,
-      updatedVpn: freshVpn,
-      signals: {
-        visitorId:    p.identification?.data?.visitorId || null,
-        confidence:   p.identification?.data?.confidence?.score ?? null,
-        incognito:    p.incognito?.data?.result        ?? null,
-        bot:          p.botd?.data?.bot?.result        ?? null,
-        botType:      p.botd?.data?.bot?.type          ?? null,
-        vpn:          p.vpn?.data?.result              ?? null,
-        proxy:        p.proxy?.data?.result            ?? null,
-        tor:          p.tor?.data?.result              ?? null,
-        tampering:    p.tampering?.data?.result        ?? null,
-        suspectScore: freshScore,
-        // Return full ipInfo so client can extract all geo fields
-        ipInfo: {
-          v4: {
-            address:     ipV4.address || null,
-            geolocation: {
-              timezone:     geo.timezone    || null,
-              // v3 Server API uses nested objects: country.name, city.name
-              country_name: geo.country?.name || null,
-              city_name:    geo.city?.name    || null,
-              // Also pass raw for client flexibility
-              country:      geo.country || null,
-              city:         geo.city    || null,
-            },
-          },
-        },
-      },
-    });
-  } catch(e) {
-    console.error('[smart-signals/public]', e.message);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CONTACT ENQUIRY ROUTE (pre-login — no auth required)
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/contact', async (req, res) => {
-  const { name, email, company, teamSize, message,
-          visitorId, requestId, confidence, incognito, bot, vpn, suspectScore,
-          ipCountry, ipTimezone, ipCity, ipAddress, rawSignals } = req.body;
-
-  // Diagnostic log — confirm what fields arrived from the client
-  console.log('[contact] received:', {
-    visitorId: visitorId || '(empty)',
-    requestId: requestId || '(empty)',
-    confidence, incognito, vpn, bot, suspectScore,
-    ipCountry: ipCountry || '(empty)',
-    ipTimezone: ipTimezone || '(empty)',
+function updateProgressDots(){
+  QUESTIONS.forEach((_,i) => {
+    const d = document.querySelector(`#q-dots .q-dot:nth-child(${i+1})`);
+    if(!d) return;
+    d.className = 'q-dot' +
+      (quizAnswers[i] !== -1 ? ' answered' : '') +
+      (i === quizCurrent ? ' current' : '');
   });
+  const answered = quizAnswers.filter(a => a !== -1).length;
+  const countEl  = document.getElementById('quiz-answered-count');
+  if(countEl) countEl.textContent = `${answered} / ${QUESTIONS.length} answered`;
+  const numEl = document.getElementById('q-current-num');
+  if(numEl) numEl.textContent = quizCurrent + 1;
+}
 
-  if (!name || !email)
-    return res.status(400).json({ ok: false, error: 'Name and email are required.' });
+// ── Render the active question ────────────────────────────────────────────────
+function renderActiveQuestion(){
+  const q   = QUESTIONS[quizCurrent];
+  const sel = quizAnswers[quizCurrent];
 
-  try {
-    let isDuplicate = false;
-    let flagReason  = null;
+  document.getElementById('active-question-card').innerHTML = `
+    <div class="question-card">
+      <div class="q-num">Question ${quizCurrent+1} of ${QUESTIONS.length}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="options">
+        ${q.options.map((opt,j) => `
+          <label class="option${sel === j ? ' selected' : ''}" id="qopt-${j}" onclick="selectQuizOption(${j})">
+            <input type="radio" name="quiz-q" value="${j}" ${sel === j ? 'checked' : ''}/>
+            ${opt}
+          </label>`).join('')}
+      </div>
+    </div>`;
 
-    if (visitorId) {
-      const { rows: byDevice } = await db.query(
-        'SELECT id, email FROM contact_enquiries WHERE visitor_id = $1', [visitorId]);
-      if (byDevice.length) {
-        isDuplicate = true;
-        flagReason  = `Device already enquired (previous email: ${byDevice[0].email})`;
-      }
-    }
+  // Nav button states
+  const prevBtn = document.getElementById('btn-prev');
+  const nextBtn = document.getElementById('btn-next');
+  const subBtn  = document.getElementById('cert-submit-btn');
+  if(prevBtn) prevBtn.disabled = quizCurrent === 0;
+  if(nextBtn) nextBtn.style.display = quizCurrent < QUESTIONS.length - 1 ? 'block' : 'none';
+  if(subBtn)  subBtn.style.display  = quizCurrent === QUESTIONS.length - 1 ? 'block' : 'none';
 
-    if (!isDuplicate) {
-      const { rows: byEmail } = await db.query(
-        'SELECT id FROM contact_enquiries WHERE LOWER(email) = LOWER($1)', [email]);
-      if (byEmail.length) {
-        isDuplicate = true;
-        flagReason  = 'Email already used in a previous enquiry';
-      }
-    }
+  updateProgressDots();
+}
 
-    const isSuspicious = (suspectScore >= CONFIG.SUSPECT_THRESHOLD) || (vpn === true) || (bot === 'bad');
-    if (!flagReason && isSuspicious) {
-      flagReason = [
-        vpn              && 'VPN detected',
-        bot === 'bad'    && 'Bot detected',
-        (suspectScore >= CONFIG.SUSPECT_THRESHOLD) && `Suspect score ${suspectScore}`,
-      ].filter(Boolean).join(', ');
-    }
+function selectQuizOption(optIdx){
+  quizAnswers[quizCurrent] = optIdx;
+  // Update selected styling without re-rendering the whole card
+  document.querySelectorAll('#active-question-card .option').forEach((el,i) => {
+    el.classList.toggle('selected', i === optIdx);
+  });
+  updateProgressDots();
+}
 
-    const status = isDuplicate ? 'spam' : isSuspicious ? 'flagged' : 'new';
+function quizNav(dir){
+  const next = quizCurrent + dir;
+  if(next < 0 || next >= QUESTIONS.length) return;
+  quizCurrent = next;
+  renderActiveQuestion();
+}
 
-    // Store all available IP fields — populated from Server API call on the client
-    await db.query(`
-      INSERT INTO contact_enquiries
-        (visitor_id, request_id, confidence, incognito, vpn, bot_result, suspect_score,
-         ip_country, ip_timezone, name, email, company, team_size, message,
-         status, flag_reason, is_duplicate, raw_signals)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
-    `, [ visitorId || null, requestId || null,
-         confidence ?? null, incognito ?? null, vpn ?? null, bot || null, suspectScore ?? null,
-         ipCountry  || rawSignals?.ipCountry   || rawSignals?._ipCountry  || null,
-         ipTimezone || rawSignals?.ipTimezone  || rawSignals?._ipTimezone || null,
-         name.trim(), email.toLowerCase().trim(), company || null, teamSize || null, message || null,
-         status, flagReason || null, isDuplicate, JSON.stringify(rawSignals || {}) ]);
+function jumpToQuestion(idx){
+  quizCurrent = idx;
+  renderActiveQuestion();
+}
 
-    if (visitorId) {
-      await logFpApiCall('contact-enquiry submitted', visitorId, 'contact-form', {
-        email, status, flagReason, suspectScore, vpn, bot, ipCountry, ipTimezone,
-      });
-    }
+// ── Shared: run signal validations and show friction modal if triggered ───────
+// Returns a promise that resolves to true if user proceeds, false if blocked.
+// Validations add FRICTION only — user can always click "Proceed".
+async function runSignalValidations(context) {
+  if (!fpCache) return true;
 
-    res.json({
-      ok: true, status,
-      message: isDuplicate
-        ? 'Thank you — we already have your details on file and will be in touch.'
-        : 'Thank you! A member of our team will reach out within 1 business day.',
-    });
-  } catch (e) {
-    console.error('[contact]', e.message);
-    res.status(500).json({ ok: false, error: 'Submission failed. Please try again.' });
+  // VPN: use vpn: true smart signal (combines timezone_mismatch, public_vpn, relay, os_mismatch)
+  // os_mismatch: separately surfaced when network OS doesn't match device OS
+  // No manual timezone comparison — Fingerprint's signals are authoritative
+  const highRisk  = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
+  const vpnOn     = fpCache.vpn === true;
+  const osMismatch = fpCache.vpnMethods?.os_mismatch === true;
+  const botOn     = fpCache.bot === true;
+
+  if (!vpnOn && !osMismatch && !highRisk && !botOn) return true; // clean — proceed immediately
+
+  const reasons = [];
+  if (vpnOn)      reasons.push(`VPN usage detected`);
+  if (osMismatch) reasons.push(`OS mismatch detected — network OS does not match device OS`);
+  if (botOn)      reasons.push(`Automated browser detected`);
+  if (highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
+
+  // Show the suspect modal with a "Proceed anyway" option
+  document.getElementById('suspect-score-badge').textContent = `Suspect score: ${fpCache.suspectScore || 0}`;
+  document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r =>
+    `<span class="sig-chip ${vpnOn||botOn||highRisk?'red':'amber'}">${r}</span>`).join('');
+
+  document.getElementById('suspect-modal-context').textContent = context;
+  document.getElementById('suspect-modal').classList.add('open');
+
+  return new Promise(resolve => {
+    window._suspectModalResolve = resolve;
+  });
+}
+
+// ── Cert tab friction check — runs from cached fpCache ────────────────────────
+function runCertTabValidation() {
+  if (!fpCache) return;
+  const highRisk  = (fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD;
+  const vpnOn     = fpCache.vpn === true;
+  const osMismatch = fpCache.vpnMethods?.os_mismatch === true;
+  if (vpnOn || osMismatch || highRisk) {
+    const reasons = [];
+    if (vpnOn)      reasons.push('VPN usage detected');
+    if (osMismatch) reasons.push('OS mismatch detected — network OS does not match device OS');
+    if (highRisk)   reasons.push(`Suspect score ${fpCache.suspectScore} exceeds threshold (${SUSPECT_THRESHOLD})`);
+    document.getElementById('suspect-score-badge').textContent = `Suspect score: ${fpCache.suspectScore || 0}`;
+    document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r => `<span class="sig-chip ${vpnOn||highRisk?'red':'amber'}">${r}</span>`).join('');
+    document.getElementById('suspect-modal').classList.add('open');
   }
-});
+}
 
-// ── API: count contact enquiries for a visitorId (pre-login, no auth) ─────────
-app.get('/api/contact/count', async (req, res) => {
-  const { visitorId } = req.query;
-  if (!visitorId) return res.json({ ok: true, count: 0 });
+// ── Submit flow ───────────────────────────────────────────────────────────────
+async function submitCert(){
+  const btn = document.getElementById('cert-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Verifying device…';
+
+  // Step 1 + 2 combined: v4 fresh identify → send sealed result to server for unseal
+  let freshVisitorId = null;
   try {
-    const { rows } = await db.query(
-      'SELECT COUNT(*) FROM contact_enquiries WHERE visitor_id = $1', [visitorId]);
-    res.json({ ok: true, count: parseInt(rows[0].count, 10) });
+    const fresh = await freshIdentify();
+    btn.textContent = 'Checking signals…';
+
+    if (!fresh.sealedResult) {
+      throw new Error('No sealed result from agent — check sealed key is active in Dashboard');
+    }
+
+    const sigRes = await authFetch('/api/fp/signals', {
+      method: 'POST',
+      body: JSON.stringify({
+        sealed_result_base64: fresh.sealedResult,
+        event_id: fresh.eventId,   // sent for Server API fallback if unseal fails
+        uiTrigger: 'cert-submit',
+      }),
+    }).then(r => r.json());
+
+    if (!sigRes.ok) throw new Error(sigRes.error || 'Signals fetch failed');
+
+    // Show fallback toast if sealed results failed and Server API was used instead
+    if (sigRes.fallback) {
+      showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API for signals.', 'warn');
+    }
+
+    const s = sigRes.signals;
+    freshVisitorId = s.visitorId;
+
+    // Device change check — visitorId from server unseal vs cached visitorId
+    if (fpCache && freshVisitorId && fpCache.visitorId && freshVisitorId !== fpCache.visitorId) {
+      btn.disabled = false; btn.textContent = 'Submit test';
+      alert('Device mismatch detected. Please log out and log in again.');
+      return;
+    }
+
+    // Update fpCache with server-verified sealed signals
+    if (fpCache) {
+      updateFpCacheFromSignals(s);
+    }
   } catch(e) {
-    res.json({ ok: true, count: 0 }); // non-fatal
+    console.warn('[FP cert sealed signals]', e.message);
+    // Non-fatal — continue with cached signals
   }
-});
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VIDEO ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/video/watch', requireAuthAndSession, async (req, res) => {
-  const { videoId } = req.body;
-  const vid    = req.session.visitorId;
-  const userId = req.session.userId;
-  try {
-    // Check watched videos across all devices this user has ever used (via identity_links)
-    const watchedIds = await getVideoViews(vid, userId);
-    if (watchedIds.includes(videoId)) {
-      return res.json({ ok: true, rewatch: true, videoId,
-        watched: watchedIds.length, limit: CONFIG.VIDEO_LIMIT,
-        remaining: Math.max(0, CONFIG.VIDEO_LIMIT - watchedIds.length), watchedIds });
+  btn.disabled = false; btn.textContent = 'Submit test';
+
+  // Step 3: Validation check — friction only, user can proceed after acknowledging
+  const canProceed = await runSignalValidations('certification submission');
+  if (!canProceed) return;
+
+  await doSubmitToServer(quizAnswers, freshVisitorId);
+}
+
+// ── Verification modal ────────────────────────────────────────────────────────
+// POC: correct code is 1234
+const VERIFY_CODE = '1234';
+let verifyResolveFn = null;
+
+function showVerifyModal(){
+  document.getElementById('verify-code-input').value = '';
+  document.getElementById('verify-error').textContent = '';
+  document.getElementById('verify-modal').classList.add('open');
+}
+
+function sendVerifyCode(){
+  document.getElementById('verify-error').textContent = '';
+  // POC: code is always 1234 — in production this would email the user
+  alert('Verification code sent to your email.\n\n(Demo: the code is 1234)');
+}
+
+function checkVerifyCode(){
+  const entered = document.getElementById('verify-code-input').value.trim();
+  if(entered !== VERIFY_CODE){
+    document.getElementById('verify-error').textContent = 'Incorrect code. Please try again.';
+    return;
+  }
+  // Correct — close modal, resume timer, submit
+  document.getElementById('verify-modal').classList.remove('open');
+  resumeTimer();
+  if(pendingAnswers){
+    doSubmitToServer(pendingAnswers);
+    pendingAnswers = null;
+  }
+}
+
+// ── Actually submit to server ─────────────────────────────────────────────────
+async function doSubmitToServer(answers, freshVisitorId){
+  if(quizTimerID){ clearInterval(quizTimerID); quizTimerID = null; }
+
+  const btn = document.getElementById('cert-submit-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+  // Scoring diagnostic — log exactly what is being sent and what the correct answers are
+  const CORRECT_ANSWERS = [1, 0, 2, 1, 3]; // must match server.js CORRECT array
+  console.log('[CERT] Submitting answers:', answers);
+  console.log('[CERT] Correct answers:   ', CORRECT_ANSWERS);
+  const clientScore = answers.reduce((n, a, i) => {
+    const correct = a === CORRECT_ANSWERS[i];
+    console.log(`[CERT] Q${i+1}: answered=${a}, correct=${CORRECT_ANSWERS[i]}, match=${correct}`);
+    return n + (correct ? 1 : 0);
+  }, 0);
+  console.log(`[CERT] Client-computed score: ${clientScore}/${answers.length}`);
+  console.log('[CERT] visitorIdAtSubmission:', freshVisitorId || fpCache?.visitorId);
+
+  const res = await authFetch('/api/cert/submit', {
+    method: 'POST',
+    body: JSON.stringify({ answers, visitorIdAtSubmission: freshVisitorId || fpCache?.visitorId })
+  }).then(r => r.json());
+
+  console.log('[CERT] Server response:', res);
+
+  if(btn){ btn.disabled = false; btn.textContent = 'Submit test'; }
+
+  if(res.alreadyCertified){ renderCertTab(); return; }
+
+  state.certAttempts = (state.certAttempts || 0) + 1;
+  quizStarted = false;
+
+  if(res.passed){
+    state.certified  = true;
+    state.certScore  = res.score;
+    showCertResult(true, res.score, res.total);
+  } else {
+    showCertResult(false, res.score, res.total);
+  }
+  updateCertStats();
+  renderCertTab();
+}
+
+function showCertResult(passed,score,total){
+  document.getElementById('cr-icon').textContent=passed?'🏆':'📚';
+  document.getElementById('cr-title').textContent=passed?"Congratulations, you're certified!":'Not quite there';
+  document.getElementById('cr-body').textContent=passed
+    ?`You scored ${score}/${total}. Your Fingerprint University certificate has been generated!`
+    :`You scored ${score}/${total} — you need 4 to pass. We'd encourage you to explore our premium plan for more attempts and additional learning resources.`;
+  const btn=document.getElementById('cr-primary-btn');
+  if(passed){ btn.textContent='View my certificate'; btn.onclick=()=>{ closeCertResult(); openCertificate(); }; }
+  else { btn.textContent='View premium plan'; btn.onclick=()=>{ closeCertResult(); openPaywall(); }; }
+  document.getElementById('cert-result-modal').classList.add('open');
+}
+function closeCertResult(){ document.getElementById('cert-result-modal').classList.remove('open'); }
+
+// ── Certificate generator ─────────────────────────────────────────────────────
+function openCertificate(){
+  const name=currentUser.name||'Graduate';
+  const email=currentUser.email||'';
+  const date=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const vid=fpCache?.visitorId||'—';
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Fingerprint University Certificate</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#f8f5ee;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px}.cert{background:#fff;width:840px;min-height:580px;border:2px solid #d4a853;border-radius:4px;padding:60px 80px;text-align:center;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.12)}.cert::before{content:'';position:absolute;inset:12px;border:1px solid #e8d5a0;border-radius:2px;pointer-events:none}.logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px}.logo-dot{width:10px;height:10px;background:#f97316;border-radius:50%;box-shadow:0 0 8px #f97316}.logo-text{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#1a1a2e}.cert-type{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#9c8060;margin-bottom:12px}h1{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:#1a1a2e;margin-bottom:8px}.name{font-family:'Playfair Display',serif;font-size:34px;color:#c45a08;margin-bottom:6px;font-weight:700}.email{font-size:14px;color:#888;margin-bottom:32px}.course{font-size:16px;color:#333;line-height:1.6;margin-bottom:40px;max-width:480px;margin-left:auto;margin-right:auto}.footer-row{display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #e8d5a0;padding-top:24px}.footer-col{text-align:center}.footer-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#1a1a2e;font-weight:500}.footer-lbl{font-size:11px;color:#aaa;margin-top:4px}.seal{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f97316,#ea6b0e);display:flex;align-items:center;justify-content:center;font-size:28px}</style>
+</head><body><div class="cert">
+  <div class="logo-row"><span class="logo-dot"></span><span class="logo-text">Fingerprint University</span></div>
+  <p class="cert-type">Certificate of completion</p>
+  <h1>This certifies that</h1>
+  <p class="name">${name}</p>
+  <p class="email">${email}</p>
+  <p class="course">has successfully completed the <strong>Fingerprint Device Intelligence Fundamentals</strong> course and demonstrated proficiency in browser fingerprinting, Smart Signals, and fraud prevention techniques.</p>
+  <div class="footer-row">
+    <div class="footer-col"><div class="footer-val">${date}</div><div class="footer-lbl">Date issued</div></div>
+    <div class="seal">🎓</div>
+    <div class="footer-col"><div class="footer-val" style="font-size:9px;max-width:140px;word-break:break-all">${vid.slice(0,20)}…</div><div class="footer-lbl">Visitor ID</div></div>
+  </div>
+</div></body></html>`;
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+}
+
+// ── View Answers modal ────────────────────────────────────────────────────────
+function openAnswersModal(){
+  document.getElementById('answers-list').innerHTML=QUESTIONS.map((q,i)=>`
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Question ${i+1}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px">${q.q}</div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        ${q.options.map((opt,j)=>`
+          <div style="padding:7px 12px;border-radius:6px;font-size:13px;
+            ${j===q.correct
+              ?'background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green);font-weight:600'
+              :'background:var(--surface);border:1px solid var(--border2);color:var(--muted)'}">
+            ${j===q.correct?'✓ ':''}${opt}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  document.getElementById('answers-modal').classList.add('open');
+}
+
+// ── Smart Signals modal — always uses a FRESH identification ─────────────────
+// Point 3: fresh Server API call, updates cached suspect score if changed
+async function openSmartSignals(){
+  document.getElementById('signals-modal').classList.add('open');
+  document.getElementById('ss-loading').style.display='block';
+  document.getElementById('ss-loading').textContent='';
+  document.getElementById('ss-loading').innerHTML='<div style="font-size:28px;margin-bottom:12px">⚡</div>Getting fresh identification…';
+  document.getElementById('ss-error').style.display='none';
+  document.getElementById('ss-content').style.display='none';
+  document.getElementById('ss-request-id').textContent='';
+  try{
+    // Step 1: fresh identification to get a new requestId (event_id in v4)
+    const fresh = await freshIdentify();
+
+    // visitorId is stripped when sealed key is active — use fpCache value for comparison
+    if (fpCache && fresh.visitorId && fpCache.visitorId && fresh.visitorId !== fpCache.visitorId) {
+      console.warn('[FP] visitorId changed:', fpCache.visitorId, '→', fresh.visitorId);
     }
-    if (watchedIds.length >= CONFIG.VIDEO_LIMIT)
-      return res.status(403).json({ ok: false, reason: 'limit_reached',
-        watched: watchedIds.length, limit: CONFIG.VIDEO_LIMIT });
 
-    await db.query(
-      `INSERT INTO video_views (visitor_id, video_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-      [vid, videoId]
-    );
-    const newWatched = [...watchedIds, videoId];
-    res.json({ ok: true, rewatch: false, videoId,
-      watched: newWatched.length, limit: CONFIG.VIDEO_LIMIT,
-      remaining: CONFIG.VIDEO_LIMIT - newWatched.length, watchedIds: newWatched });
-  } catch (e) {
-    console.error('[video/watch]', e.message);
-    res.status(500).json({ ok: false, error: e.message });
+    document.getElementById('ss-loading').innerHTML='<div style="font-size:28px;margin-bottom:12px">⚡</div>Calling Fingerprint Server API…';
+
+    // Step 3: fetch Server API signals using fresh requestId (event_id from v4)
+    const data=await authFetch('/api/smart-signals?requestId='+fresh.requestId+'&uiTrigger=smart-signals-footer-link').then(r=>r.json());
+
+    // Step 4: update cache with ALL authoritative Server API values
+    if (data.ok && fpCache) {
+      const s        = data.signals;
+      const oldScore = fpCache.suspectScore || 0;
+      
+      // Fix: Overwrite internal payload's suspectScore using updated score from backend (if present)
+      // Defaults to falling back cleanly on the deeply nested native suspect score
+      s.suspectScore = data.updatedSuspectScore ?? s.suspectScore;
+      const newScore = s.suspectScore;
+      
+      // Update our globally managed cache
+      updateFpCacheFromSignals(s);
+
+      if (newScore !== undefined && newScore !== oldScore) {
+        console.log(`[FP] Suspect score: ${oldScore} → ${newScore}`);
+      }
+
+      // VPN validation: use vpn: true + os_mismatch smart signals only
+      if (fpCache.vpn === true) {
+        const reasons = ['VPN usage confirmed by Fingerprint Server API'];
+        if (fpCache.vpnMethods?.os_mismatch === true) {
+          reasons.push('OS mismatch detected — network OS does not match device OS');
+        }
+        document.getElementById('suspect-score-badge').textContent = `VPN detected — suspect score: ${fpCache.suspectScore}`;
+        document.getElementById('suspect-signals-list').innerHTML  = reasons.map(r =>
+          `<span class="sig-chip red">${r}</span>`).join('');
+        document.getElementById('suspect-modal').classList.add('open');
+      } else if ((fpCache.suspectScore || 0) >= SUSPECT_THRESHOLD && !suspectAlreadyShown) {
+        suspectAlreadyShown = true;
+        showSuspectModal(fpCache.suspectScore);
+      }
+    }
+    document.getElementById('ss-loading').style.display='none';
+    if(!data.ok){ const e=document.getElementById('ss-error'); e.textContent=data.error; e.style.display='block'; return; }
+    document.getElementById('ss-request-id').textContent=`requestId: ${data.requestId}`;
+    const s=data.signals;
+    const rows=[
+      {key:'visitorId',        value:s.visitorId||'—',                                            cat:'identification'},
+      {key:'confidence',       value:s.confidence!=null?(s.confidence*100).toFixed(1)+'%':'—',    cat:'identification'},
+      {key:'firstSeenAt',      value:s.firstSeenAt?new Date(s.firstSeenAt).toLocaleString():'—',  cat:'identification'},
+      {key:'lastSeenAt',       value:s.lastSeenAt?new Date(s.lastSeenAt).toLocaleString():'—',    cat:'identification'},
+      {key:'incognito',        value:String(s.incognito??'—'),    cat:'privacy',  flag:s.incognito===true},
+      {key:'bot.result',       value:String(s.bot??'—'),          cat:'bot',      flag:s.bot==='bad'},
+      {key:'bot.type',         value:String(s.botType??'—'),      cat:'bot'},
+      {key:'vpn',              value:String(s.vpn??'—'),          cat:'network',  flag:s.vpn===true},
+      {key:'vpn.originCountry',value:String(s.originCountry??'—'),cat:'network'},
+      {key:'proxy',            value:String(s.proxy??'—'),        cat:'network',  flag:s.proxy===true},
+      {key:'tor',              value:String(s.tor??'—'),          cat:'network',  flag:s.tor===true},
+      {key:'tampering',        value:String(s.tampering??'—'),    cat:'device',   flag:s.tampering===true},
+      {key:'highActivity',     value:String(s.highActivity??'—'), cat:'device',   flag:s.highActivity===true},
+      {key:'locationSpoofing', value:String(s.locationSpoofing??'—'), cat:'device', flag:s.locationSpoofing===true},
+      {key:'suspectScore',     value:String(s.suspectScore??'—'), cat:'risk',     flag:(s.suspectScore||0)>=12},
+      {key:'ipv4.address',     value:s.ipInfo?.v4?.address||'—',                    cat:'ip'},
+      {key:'ipv4.country',     value:s.ipInfo?.v4?.geolocation?.country?.name||'—', cat:'ip'},
+      {key:'ipv4.city',        value:s.ipInfo?.v4?.geolocation?.city?.name||'—',    cat:'ip'},
+      {key:'ipv4.timezone',    value:s.ipInfo?.v4?.geolocation?.timezone||'—',      cat:'ip'},
+    ];
+    const cats={identification:'Identification',privacy:'Privacy',bot:'Bot detection',network:'Network',device:'Device',risk:'Risk score',ip:'IP info'};
+    let html='';
+    for(const [cat,label] of Object.entries(cats)){
+      const catRows=rows.filter(r=>r.cat===cat); if(!catRows.length) continue;
+      html+=`<div style="margin-bottom:20px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">${label}</div>
+        <div style="background:var(--surface);border:1px solid var(--border2);border-radius:10px;overflow:hidden">
+          ${catRows.map((r,idx)=>`
+            <div style="display:flex;align-items:center;padding:9px 14px;border-bottom:${idx<catRows.length-1?'1px solid var(--border)':'none'}">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent2);min-width:180px;flex-shrink:0">${r.key}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${r.flag===true?'var(--red)':r.flag===false?'var(--green)':'var(--text)'}">
+                ${r.flag===true?'⚠ ':r.flag===false?'✓ ':''}${r.value}
+              </span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    document.getElementById('ss-content').innerHTML=html;
+    document.getElementById('ss-content').style.display='block';
+  }catch(err){
+    document.getElementById('ss-loading').style.display='none';
+    const e=document.getElementById('ss-error'); e.textContent='Failed to fetch: '+err.message; e.style.display='block';
   }
-});
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CERTIFICATION ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/cert/submit', requireAuthAndSession, async (req, res) => {
-  const { answers, visitorIdAtSubmission } = req.body;
-  const vid    = req.session.visitorId;
-  const userId = req.session.userId;
-  try {
-    // Check across all devices this user has ever used
-    const cert = await getCert(vid, userId);
-    if (cert?.passed) return res.json({ ok: true, alreadyCertified: true, score: cert.score });
-    if (cert?.attempts >= 1)
-      return res.status(403).json({
-        ok: false, reason: 'no_attempts',
-        message: 'No attempts remaining for this device or account.',
-      });
+// ── Report card ───────────────────────────────────────────────────────────────
+async function openReportCard(){
+  const data=await authFetch('/api/report').then(r=>r.json());
+  if(!data.ok){ alert('Please log in first.'); return; }
+  document.getElementById('report-vid').textContent=`Visitor ID: ${data.visitorId}`;
+  document.getElementById('report-grid').innerHTML=`
+    <div class="report-stat"><div class="report-stat-label">Videos watched</div><div class="report-stat-value" style="color:var(--accent)">${data.videosWatched} / 3</div></div>
+    <div class="report-stat"><div class="report-stat-label">Cert attempts</div><div class="report-stat-value" style="color:${data.certAttempts>0?'var(--amber)':'var(--text)'}">${data.certAttempts}</div></div>
+    <div class="report-stat"><div class="report-stat-label">Certified</div><div class="report-stat-value" style="color:${data.certified?'var(--green)':'var(--muted)'}">${data.certified?'Yes':'No'}</div></div>
+    <div class="report-stat"><div class="report-stat-label">Cert score</div><div class="report-stat-value">${data.certScore!==null?data.certScore+'/5':'–'}</div></div>
+    <div class="report-stat"><div class="report-stat-label">Suspect score</div><div class="report-stat-value" style="color:${data.suspectScore>=SUSPECT_THRESHOLD?'var(--red)':'var(--green)'}">${data.suspectScore}</div></div>
+    <div class="report-stat"><div class="report-stat-label">VPN detected</div><div class="report-stat-value" style="color:${data.vpn?'var(--amber)':'var(--green)'}">${data.vpn?'Yes':'No'}</div></div>`;
+  document.getElementById('report-sig-row').innerHTML=[
+    data.vpn?'<span class="sig-chip amber">vpn active</span>':'',
+    data.highActivity?'<span class="sig-chip amber">high activity</span>':'',
+    data.suspectScore>=SUSPECT_THRESHOLD?`<span class="sig-chip red">suspect score: ${data.suspectScore}</span>`:'',
+    data.certified?'<span class="sig-chip green">certified</span>':'',
+  ].join('');
+  document.getElementById('report-modal').classList.add('open');
+}
 
-    if (visitorIdAtSubmission && visitorIdAtSubmission !== vid)
-      return res.status(403).json({ ok: false, reason: 'visitor_id_mismatch',
-        error: 'Device mismatch detected. Please log out and log in again.' });
+// ── Logout ────────────────────────────────────────────────────────────────────
+// logout() — called from the header button, delegates to doLogout()
+async function logout(){ await doLogout(); }
 
-    const CORRECT = [1, 0, 2, 1, 3];
-    const score   = answers.reduce((n, a, i) => n + (a === CORRECT[i] ? 1 : 0), 0);
-    const passed  = score >= 4;
-    const now     = new Date();
+// ── Cert stats bar update ─────────────────────────────────────────────────────
+function updateCertStats(){
+  const attEl  = document.getElementById('cert-stat-attempts');
+  const statEl = document.getElementById('cert-stat-status');
+  const subEl  = document.getElementById('cert-stat-sub');
+  const scoreEl= document.getElementById('cert-stat-score');
+  if(!attEl) return;
 
-    await db.query(`
-      INSERT INTO certifications (visitor_id, attempts, passed, score, submitted_at)
-      VALUES ($1, 1, $2, $3, $4)
-      ON CONFLICT (visitor_id) DO UPDATE SET
-        attempts = certifications.attempts + 1, passed = $2, score = $3, submitted_at = $4
-    `, [vid, passed, score, now]);
+  attEl.textContent = state.certAttempts || 0;
+  attEl.className   = 'stat-value ' + (state.certAttempts >= 1 ? 'red' : 'green');
 
-    res.json({ ok: true, passed, score, total: 5, submittedAt: now.toISOString() });
-  } catch (e) {
-    console.error('[cert/submit]', e.message);
-    res.status(500).json({ ok: false, error: e.message });
+  if(state.certified){
+    statEl.textContent = '✅';
+    statEl.className   = 'stat-value';
+    subEl.textContent  = 'certified';
+  } else if(state.certAttempts >= 1){
+    statEl.textContent = '❌';
+    statEl.className   = 'stat-value';
+    subEl.textContent  = 'not passed';
+  } else {
+    statEl.textContent = '–';
+    statEl.className   = 'stat-value';
+    subEl.textContent  = 'not attempted';
   }
-});
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REVIEW ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
-app.post('/api/review/submit', requireAuthAndSession, async (req, res) => {
-  const { email, rating, subject, body: reviewBody, visitorIdAtSubmission, suspectScore, vpn } = req.body;
-  const vid    = req.session.visitorId;
-  const userId = req.session.userId;
-  if (!email) return res.status(400).json({ ok: false, error: 'Email is required.' });
+  scoreEl.textContent = state.certScore !== null && state.certScore !== undefined
+    ? `${state.certScore} / 5`
+    : '–';
+  scoreEl.className = 'stat-value ' +
+    (state.certScore >= 4 ? 'green' : state.certScore !== null && state.certScore !== undefined ? 'red' : '');
+}
+
+// ── FPJS log modal ────────────────────────────────────────────────────────────
+async function openFpLog(){
+  document.getElementById('fplog-modal').classList.add('open');
+  document.getElementById('fplog-loading').style.display = 'block';
+  document.getElementById('fplog-table').style.display   = 'none';
+  document.getElementById('fplog-empty').style.display   = 'none';
+
   try {
-    // Check across all devices this user has ever used
-    const byDevice = await getReview(vid, userId);
-    if (byDevice) return res.status(403).json({ ok: false, reason: 'device_already_submitted',
-      error: `This device or account has already submitted a review from: ${byDevice.email}`,
-      submittedEmail: byDevice.email });
+    const data = await authFetch('/api/fp-log').then(r => r.json());
+    document.getElementById('fplog-loading').style.display = 'none';
 
-    // Also check the gift card email in case it was already used by anyone
-    const { rows: byGiftEmail } = await db.query(
-      'SELECT visitor_id FROM reviews WHERE LOWER(email) = LOWER($1)', [email]);
-    if (byGiftEmail.length) return res.status(403).json({ ok: false, reason: 'email_already_used',
-      error: 'This email address has already been used to claim a gift card.' });
+    if(!data.ok || !data.log.length){
+      document.getElementById('fplog-empty').style.display = 'block';
+      return;
+    }
 
-    if (visitorIdAtSubmission && visitorIdAtSubmission !== vid)
-      return res.status(403).json({ ok: false, reason: 'visitor_id_mismatch',
-        error: 'Device mismatch detected. Please log out and log in again.' });
+    document.getElementById('fplog-body').innerHTML = data.log.map(entry => {
+      const time      = new Date(entry.ts).toLocaleTimeString();
+      const isServer  = entry.event.includes('Server API');
+      const isError   = entry.event.includes('ERROR');
+      const typeLabel = isError   ? `<span class="fplog-badge error">error</span>`
+                      : isServer  ? `<span class="fplog-badge server">server api</span>`
+                      :             `<span class="fplog-badge js">js agent</span>`;
+      const vid = entry.visitorId ? entry.visitorId.slice(0,18)+'…' : '–';
+      // Build a compact signals summary from the extra fields
+      const sigs = [];
+      if(entry.incognito !== undefined) sigs.push(`incognito:${entry.incognito?'yes':'no'}`);
+      if(entry.vpn       !== undefined) sigs.push(`vpn:${entry.vpn?'yes':'no'}`);
+      if(entry.bot       !== undefined) sigs.push(`bot:${entry.bot||'–'}`);
+      if(entry.suspectScore !== undefined) sigs.push(`suspect:${entry.suspectScore}`);
+      if(entry.error     !== undefined) sigs.push(`err:${entry.error}`);
 
-    const isFlagged = (suspectScore >= CONFIG.SUSPECT_THRESHOLD) || (vpn === true);
-    const status    = isFlagged ? 'flagged' : 'approved';
-    const now       = new Date();
+      return `<tr>
+        <td style="white-space:nowrap;color:var(--muted)">${time}</td>
+        <td class="fplog-event">${entry.event}</td>
+        <td>${typeLabel}</td>
+        <td style="color:var(--text);font-size:11px;white-space:nowrap">${entry.uiTrigger || '–'}</td>
+        <td style="color:var(--accent2)">${vid}</td>
+        <td style="color:var(--muted);font-size:10px">${sigs.join(' · ') || '–'}</td>
+      </tr>`;
+    }).join('');
 
-    await db.query(`
-      INSERT INTO reviews
-        (visitor_id, email, rating, subject, body, status,
-         suspect_score_at_submission, vpn_at_submission, visitor_id_at_submission, submitted_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-    `, [vid, email.toLowerCase().trim(), rating || null, subject || null, reviewBody || null,
-        status, suspectScore ?? null, vpn ?? null, visitorIdAtSubmission || vid, now]);
-
-    await logFpApiCall('review submitted', vid, 'review-submit-button', { email, suspectScore, vpn, status });
-
-    res.json({
-      ok: true, giftCardEmail: status === 'approved' ? email : null,
-      giftCardGranted: status === 'approved', status,
-      submittedAt: now.toISOString(),
-      flagReason: isFlagged ? (vpn ? 'VPN usage detected' : `Suspect score ${suspectScore} above threshold`) : null,
-    });
-  } catch (e) {
-    console.error('[review/submit]', e.message);
-    res.status(500).json({ ok: false, error: e.message });
+    document.getElementById('fplog-table').style.display = 'table';
+  } catch(err){
+    document.getElementById('fplog-loading').textContent = 'Failed to load: ' + err.message;
   }
-});
+}
 
-app.get('/api/review/status', requireAuthAndSession, async (req, res) => {
+// ── Review tab ────────────────────────────────────────────────────────────────
+let reviewRating = 0;
+// Tracks the last time the Server API was called (ms timestamp), used for
+// the 2-minute caching rule on the review tab.
+// Shared with cert submit — certSubmittedAt from the server covers the cert case.
+
+function setRating(n) {
+  reviewRating = n;
+  document.querySelectorAll('.star-btn').forEach((el, i) => {
+    el.textContent = i < n ? '★' : '☆';
+    el.style.color = i < n ? 'var(--amber)' : 'var(--muted)';
+  });
+}
+
+async function switchToReviewTab() {
+  // No API call on tab open — use cached signals from login or last Smart Signals call.
+  // The Server API is called mandatorily at review submission (submitReview).
+  console.log('[FP] Review tab: using cached signals, API called at submission only');
+
+  // Check if this device has already submitted a review
   try {
-    const review = await getReview(req.session.visitorId, req.session.userId);
-    if (review) return res.json({ ok: true, submitted: true, email: review.email,
-      status: review.status, submittedAt: review.submitted_at });
-    res.json({ ok: true, submitted: false });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
-});
+    const status = await authFetch('/api/review/status').then(r => r.json());
+    if (status.submitted) {
+      showReviewDone(status.email, status.submittedAt, status.status, null);
+    }
+  } catch(e) {}
+}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REPORT + LOG ROUTES
-// ─────────────────────────────────────────────────────────────────────────────
-app.get('/api/report', requireAuthAndSession, async (req, res) => {
-  const vid = req.session.visitorId;
+function showReviewDone(email, submittedAt, status, flagReason) {
+  document.getElementById('review-form-wrap').style.display   = 'none';
+  document.getElementById('review-done-banner').style.display = 'block';
+
+  const isFlagged = status === 'flagged';
+
+  document.getElementById('review-done-banner').style.borderColor =
+    isFlagged ? 'rgba(245,158,11,.3)' : 'rgba(34,197,94,.25)';
+
+  document.getElementById('review-done-banner').innerHTML = isFlagged
+    ? `<div style="font-size:44px;margin-bottom:14px">⚠️</div>
+       <h2 style="font-size:20px;font-weight:700;margin-bottom:10px;color:var(--amber)">Review received — under review</h2>
+       <p style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:10px">
+         Your review has been submitted but flagged for manual verification
+         ${flagReason ? `<strong style="color:var(--text)"> (${flagReason})</strong>` : ''}.
+         The gift card will be sent to <strong style="color:var(--text)">${email}</strong> once approved.
+       </p>
+       <p style="font-size:13px;color:var(--muted)">Submitted at: ${submittedAt ? new Date(submittedAt).toLocaleString() : '—'}</p>`
+    : `<div style="font-size:44px;margin-bottom:14px">🎁</div>
+       <h2 style="font-size:20px;font-weight:700;margin-bottom:10px;color:var(--green)">Review submitted!</h2>
+       <p style="font-size:15px;color:var(--muted);line-height:1.65;margin-bottom:10px">
+         A $20 gift card is on its way to <strong style="color:var(--text)">${email}</strong>.
+       </p>
+       <p style="font-size:13px;color:var(--muted)">Submitted at: ${submittedAt ? new Date(submittedAt).toLocaleString() : '—'}</p>`;
+}
+
+async function submitReview() {
+  const email   = document.getElementById('review-email').value.trim();
+  const subject = document.getElementById('review-subject').value.trim();
+  const body    = document.getElementById('review-body').value.trim();
+  const errEl   = document.getElementById('review-error');
+  const btn     = document.getElementById('review-submit-btn');
+
+  errEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Email address is required.'; errEl.style.display = 'block'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { errEl.textContent = 'Please enter a valid email address (must contain @).'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Verifying device…';
+
+  // Always call sealed client results — every review submission gets fresh signals.
+  let freshVisitorId = null;
   try {
-    const [dev, watchedIds, cert, review] = await Promise.all([
-      getDevice(vid), getVideoViews(vid), getCert(vid), getReview(vid)]);
-    res.json({ ok: true, visitorId: vid,
-      activeEmail: dev?.active_email, videosWatched: watchedIds.length, watchedIds,
-      certAttempts: cert?.attempts||0, certified: cert?.passed||false,
-      certScore: cert?.score??null, suspectScore: dev?.suspect_score||0,
-      vpn: dev?.vpn||false, highActivity: dev?.high_activity||false,
-      fpSignals: dev?.fp_signals||null,
-      signalsFresh: signalsAreFresh(dev),
-      review: review ? { email: review.email, status: review.status, submittedAt: review.submitted_at } : null,
-    });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
-});
+    const fresh = await freshIdentify();
+    btn.textContent = 'Checking signals…';
 
-app.get('/api/fp-log', requireAuthAndSession, async (req, res) => {
+    if (!fresh.sealedResult) throw new Error('No sealed result from agent');
+
+    const sigRes = await authFetch('/api/fp/signals', {
+      method: 'POST',
+      body: JSON.stringify({
+        sealed_result_base64: fresh.sealedResult,
+        event_id: fresh.eventId,
+        uiTrigger: 'review-submit',
+      }),
+    }).then(r => r.json());
+
+    if (!sigRes.ok) throw new Error(sigRes.error || 'Signals fetch failed');
+
+    if (sigRes.fallback) {
+      showToast('Using Server API', 'Sealed Client Results unavailable — falling back to Server API for signals.', 'warn');
+    }
+
+    const s = sigRes.signals;
+    freshVisitorId = s.visitorId;
+
+    // Device change check
+    if (fpCache && freshVisitorId && fpCache.visitorId && freshVisitorId !== fpCache.visitorId) {
+      errEl.textContent = 'Device mismatch detected. Please log out and log in again.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card'; return;
+    }
+
+    // Update fpCache with sealed signals
+    if (fpCache) {
+      updateFpCacheFromSignals(s);
+    }
+  } catch(e) {
+    console.warn('[FP review sealed signals]', e.message);
+    freshVisitorId = fpCache?.visitorId || null;
+  }
+
+  btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card';
+
+  // Step 3: Validation check — friction only
+  const canProceed = await runSignalValidations('review submission');
+  if (!canProceed) return;
+
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
   try {
-    const { rows } = await db.query(
-      `SELECT id, visitor_id, event, ui_trigger, signals, called_at
-       FROM fp_api_log ORDER BY called_at DESC LIMIT 200`);
-    res.json({ ok: true, log: rows.map(r => ({
-      ts: r.called_at, event: r.event, visitorId: r.visitor_id,
-      uiTrigger: r.ui_trigger, ...(r.signals || {}),
-    }))});
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
-});
+    const res = await authFetch('/api/review/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        email, rating: reviewRating, subject, body,
+        visitorIdAtSubmission: freshVisitorId || fpCache?.visitorId,
+        suspectScore: fpCache?.suspectScore || 0,
+        vpn:          fpCache?.vpn || false,
+      }),
+    }).then(r => r.json());
 
-// ─────────────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => console.log(`\n🎓  Fingerprint University → http://localhost:${PORT}\n`));
+    if (!res.ok) {
+      errEl.textContent = res.error;
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card';
+      if (res.reason === 'device_already_submitted' || res.reason === 'email_already_used') {
+        showReviewDone(res.submittedEmail || email, null, null, null);
+      }
+      return;
+    }
+    showReviewDone(res.giftCardEmail || email, res.submittedAt, res.status, res.flagReason);
+  } catch(e) {
+    errEl.textContent = 'Submission failed. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Submit review & claim $20 gift card';
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadMe();
+</script>
+
+<div class="modal-backdrop" id="fplog-modal">
+  <div class="modal-box" style="max-width:720px;padding:28px 32px;max-height:85vh;overflow-y:auto">
+    <button class="modal-close-btn" onclick="document.getElementById('fplog-modal').classList.remove('open')">✕</button>
+    <h2 class="fplog-title">FPJS API Call Log</h2>
+    <p class="fplog-sub">All Fingerprint API calls this session — newest first · ap.api.fpjs.io</p>
+    <div id="fplog-loading" style="text-align:center;padding:32px;color:var(--muted)">Loading…</div>
+    <table class="fplog-table" id="fplog-table" style="display:none">
+      <thead><tr><th>Time</th><th>Event</th><th>Type</th><th>UI Trigger</th><th>Visitor ID</th><th>Signals</th></tr></thead>
+      <tbody id="fplog-body"></tbody>
+    </table>
+    <div id="fplog-empty" style="display:none;text-align:center;padding:32px;color:var(--muted)">No API calls recorded yet this session.</div>
+  </div>
+</div>
+
+</body>
+</html>
